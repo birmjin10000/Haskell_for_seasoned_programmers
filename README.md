@@ -8,17 +8,50 @@ Monad Transformers, Arrow, GADTs, Type Families, RankNTypes, Applicative Functor
 
 ## 사전 학습
 
+Haskell로 프로젝트를 할 때 cabal 을 통해 패키지를 설치하면 의존성 문제를 해결하는데 많은 시간이 쓰일 때가 있습니다. 이런 문제를 해결하고자 [stack](https://github.com/commercialhaskell/stack)과 같은 도구가 있습니다. Mac OS X의 경우 homebrew 로 설치하는 것이 가장 간편합니다. 설치 후에 다음과 같이 my-project 라는 이름으로 프로젝트를 하나 만들고 빌드 및 실행해 봅니다.
+
+    stack new my-project new-template
+    stack setup
+    stack build
+    stack exec my-project-exe
+
+
+
+숙제) 지뢰찾기 게임을 Haskell로 구현해 보세요. 다음 MineSweeper.hs 코드를 완성해서 제출하세요.
+
 ## 숙제 복기 시간
 
 ## 첫 1시간
+다음의 ghc 컴파일러 확장을 배웁시다.
+- FlexibleInstances
+- MultiParamTypeClasses
+- OverloadedStrings
+- ViewPatterns
+- LambdaCase
+- BangPatterns
+- ParallelListComp
+- TransformListComp
+- BinaryLiterals
+- FunctionalDependencies
+- FlexibleContexts
+- RecordWildCards
 
 ## 두 번째 시간
+다음의 ghc 컴파일러 확장을 배웁시다.
+- RankNTypes
+- GADTs(Generalised Algebraic Data Types)
+- ScopedTypeVariables
+- LiberalTypeSynonyms
+- ExistentialQuantification
+- TypeFamillies
 
 ## 세 번째 시간
+- Pattern Synonyms
+- Standalone deriving
 
 ## 네 번째 시간
 
-## 다선 번째 시간
+## 다섯 번째 시간
 
 ## 여섯 번째 시간
 
