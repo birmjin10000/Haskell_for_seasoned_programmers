@@ -29,12 +29,20 @@ Haskell로 프로젝트를 할 때 cabal 을 통해 패키지를 설치하면 �
 - ViewPatterns
 - LambdaCase
 - BangPatterns
+- TypeSynonymInstances
 - ParallelListComp
 - TransformListComp
 - BinaryLiterals
 - FunctionalDependencies
 - FlexibleContexts
 - RecordWildCards
+- RecursiveDo
+- NoMonomorphismRestriction
+- DeriveFunctor, DeriveFoldable, DeriveTraversable
+- DeriveGeneric
+- DeriveAnyClass
+- DeriveDataTypeable
+- GeneralizedNewtypeDeriving
 
 ## 두 번째 시간
 다음의 ghc 컴파일러 확장을 배웁시다.
@@ -48,10 +56,14 @@ Haskell로 프로젝트를 할 때 cabal 을 통해 패키지를 설치하면 �
 ## 세 번째 시간
 - Pattern Synonyms
 - Standalone deriving
+- Typed holes
 
 ## 네 번째 시간
+- DWARF based debugging
+- Template Haskell with Quasiquoting
 
 ## 다섯 번째 시간
+- Dependent Types
 
 ## 여섯 번째 시간
 
