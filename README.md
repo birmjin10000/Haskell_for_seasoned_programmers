@@ -23,16 +23,16 @@ Haskell로 프로젝트를 할 때 cabal 을 통해 패키지를 설치하면 �
 
 ## 첫 1시간
 다음의 ghc 컴파일러 확장을 배웁시다.
+- BinaryLiterals
+- OverloadedStrings
+- LambdaCase
 - FlexibleInstances
 - MultiParamTypeClasses
-- OverloadedStrings
 - ViewPatterns
-- LambdaCase
 - BangPatterns
 - TypeSynonymInstances
 - ParallelListComp
 - TransformListComp
-- BinaryLiterals
 - FunctionalDependencies
 - FlexibleContexts
 - RecordWildCards
@@ -43,6 +43,32 @@ Haskell로 프로젝트를 할 때 cabal 을 통해 패키지를 설치하면 �
 - DeriveAnyClass
 - DeriveDataTypeable
 - GeneralizedNewtypeDeriving
+
+먼저 BinaryLiterals 확장은 0b 또는 0B를 앞에 붙일 경우 그 다음에 나오는 숫자는 이진수를 뜻합니다. 즉 아래 코드에서 0b1101 은 이진수 1101 를 뜻합니다.
+```haskell
+{-# LANGUAGE BinaryLiterals #-}
+a = 0b1101 -- 13
+```
+다음 코드를 봅시다. 숫자의 type은 Int, Float, Double 등 여러가지인데, Haskell에서는 같은 숫자라도 주어진 type에 따라 type이 달리 정해질 수 있습니다. 숫자에 대해서는 다형성을 기본 지원해 주는 것이지요.
+    > let a::Int; a = 2
+    > let b::Double; b = 2
+    > let c::Rational; c = 2
+그런데 문자열도 String이 있고 유니코드를 위한 Text가 있는 등 여러 type 이 있습니다. Haskell에서는 문자열을 type없이 적으면 항상 String이기 때문에 다음처럼 하면 동작하지 않습니다.
+    > import Data.Text
+    > let s::Text; s = "백두산"
+    Couldn't match expected type ‘Text’ with actual type ‘[Char]’
+    In the expression: "\48177\46160\49328"
+    In an equation for ‘s’: s = "\48177\46160\49328"
+문자열에 대해 다형성을 지원하도록 하려면 OverloadedStrings 확장을 사용합니다.
+```haskell
+{-# LANGUAGE OverloadedStrings #-}
+a::Text
+a = "백두산"
+b::ByteString
+b = "백두산"
+c::String
+c = "백두산"
+```
 
 ## 두 번째 시간
 다음의 ghc 컴파일러 확장을 배웁시다.
