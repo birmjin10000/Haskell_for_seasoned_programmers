@@ -64,6 +64,9 @@ a = 0b1101 -- 13
 문자열에 대해 다형성을 지원하도록 하려면 OverloadedStrings 확장을 사용합니다.
 ```haskell
 {-# LANGUAGE OverloadedStrings #-}
+import Data.Text
+import Data.ByteString
+
 a::Text
 a = "백두산"
 b::ByteString
