@@ -54,11 +54,13 @@ a = 0b1101 -- 13
     > let b::Double; b = 2
     > let c::Rational; c = 2
 그런데 문자열도 String이 있고 유니코드를 위한 Text가 있는 등 여러 type 이 있습니다. Haskell에서는 문자열을 type없이 적으면 항상 String이기 때문에 다음처럼 하면 동작하지 않습니다.
+
     > import Data.Text
     > let s::Text; s = "백두산"
     Couldn't match expected type ‘Text’ with actual type ‘[Char]’
     In the expression: "\48177\46160\49328"
     In an equation for ‘s’: s = "\48177\46160\49328"
+
 문자열에 대해 다형성을 지원하도록 하려면 OverloadedStrings 확장을 사용합니다.
 ```haskell
 {-# LANGUAGE OverloadedStrings #-}
