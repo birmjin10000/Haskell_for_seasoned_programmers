@@ -52,13 +52,14 @@ import qualified Data.Sequence as Seq
 sumSeq:: Seq.Seq Int -> Int
 sumSeq (Seq.viewl -> Seq.EmptyL) = 0
 sumSeq (Seq.viewl -> (x Seq.:< xs)) = x + sumSeq xs
-sum10 = sumSeq $ Seq.fromList [1..10] -- 55
+sumTen = sumSeq $ Seq.fromList [1..10] -- 55
 ```
 Pattern sysnonym 을 함께 이용하면 다음처럼 좀 더 편하게 할 수 있습니다.
 ```haskell
 {-# LANGUAGE ViewPatterns, PatternSynonyms #-}
 import qualified Data.Sequence as Seq
 
+{-양방향 pattern synonyme으로 Empty, (:<), (:>) 는 Sequence constructor 로도 사용할 수 있습니다 -}
 pattern Empty <- (Seq.viewl -> Seq.EmptyL) where Empty = Seq.empty
 pattern x:<xs <- (Seq.viewl -> (x Seq.:< xs)) where (:<) = (Seq.<|)
 pattern xs:>x <- (Seq.viewr -> (xs Seq.:> x)) where (:>) = (Seq.|>)
@@ -67,11 +68,17 @@ sumSeq:: Seq.Seq Int -> Int
 sumSeq Empty = 0
 sumSeq (x:<xs) = x + sumSeq xs
 sumTen = sumSeq $ Seq.fromList [1..10] -- 55
-sum123 = sumSeq $ 1:<Seq.fromList [2,3] -- 6
+sum123 = sumSeq $ 1:<Seq.fromList [2,3] -- 6, (:<) 을 Sequence constructor 로 쓰고 있습니다
 ```
 
 #### Vector 자료형
-vector 패키지에 있다. 
+vector 패키지에 있습니다. Vector 자료형은 색인이 정수인 배열입니다. 구현은 HAMT(Hash Array Mapped Trie)로 되어 있습니다. Immutable vector 와 Mutable vector, 둘 다 있습니다. Data.Vector 모듈이 Immutable vector 이고 Data.Vector.Mutable 모듈이 Mutable vector 입니다. Immutable vector의 경우 기본 자료형인 List와 동작특성이 완전히 같습니다. 물론 성능특성은 다릅니다. 반면, Mutable vector 는 C 언어의 배열에 가깝습니다.
+한편, vector 자료형은 담고 있는 자료의 형태에 따라 Boxed, Storable, Unboxed 의 세가지 구분이 또 있습니다.
+
+* Boxed 에는 Haskell 의 어떤 종류의 자료도 담을 수 있습니다. 실제 자료는 heap memory 에 있고 vector 는 해당 자료에 대한 pointer 만 담고 있습니다. Pointer 사용에 따른 추가 메모리 사용이 있으며 pointer derefenecing 에 따른 성능손실이 있습니다.
+* Storable 과 Unboxed 는 byte array 로 자료를 직접 담고 있습니다. 따라서 Boxed 에 비해 추가 메모리 사용이 없고, pointer dereferencing 으로 인한 성능손실도 없으며 cache 적중율도 우수합니다. Storable 과 Unboxed 의 차이는 조금 사소한데, 다음과 같습니다.
+    * Storable 에 저장하는 자료는 Storable type class 에 속해야 하며 이는 malloc 으로 확보한 메모리에 담깁니다. malloc 으로 확보한 메모리영역은 pinned 됩니다. 즉, Garbage collector 가 이 메모리 영역을 옮길 수 없습니다. 따라서 메모리 파편화가 발생하지만 대신 C FFI(Foreign Function Interface)에게 해당 메모리 영역을 공유할 수 있습니다.
+    * Unboxed 에 저장하는 자료는 Prim type class (이는 primitive 패키지에 있습니다)에 속해야 하며 이는 Garbage collector 가 관리하는 unpinned 메모리에 담깁니다. 따라서 Storable 과는 정반대의 특성을 가집니다.
 
 #### Array 자료형
 
@@ -173,6 +180,7 @@ sayHello names = map (\case
 
 ## 더 읽을 거리
 #### Finger trees
+#### Hash Array Mapped Trie (HAMT)
 
 
 ## License
