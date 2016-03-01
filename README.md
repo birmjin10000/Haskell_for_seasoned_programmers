@@ -29,7 +29,7 @@ a = Seq.fromList [1,2,3] -- fromList [1,2,3]
 ```
 Sequence 에 사용할 수 있는 연산자들을 살펴봅시다.
 ```haskell
-import Data.Sequence ((<|), (|>), (><))
+import Data.Sequence ((<|),(|>),(><))
 import qualified Data.Sequence as Seq
 import qualified Data.Foldable as F
 
@@ -43,6 +43,31 @@ take2 = Seq.take 2 joined -- fromList [1,2]
 drop2 = Seq.drop 2 joined -- fromList [3,7,8], take과 drop 함수는 O(log(min(i,n-i))) 시간이 걸립니다.
 totalSum = F.foldr1 (+) joined -- 21
 listForm = F.toList joined -- [1,2,3,7,8]
+```
+Sequence 자료형의 Pattern matching 은 다음처럼 ViewPatterns ghc 확장을 이용합니다.
+```haskell
+{-# LANGUAGE ViewPatterns #-}
+import qualified Data.Sequence as Seq
+
+sumSeq:: Seq.Seq Int -> Int
+sumSeq (Seq.viewl -> Seq.EmptyL) = 0
+sumSeq (Seq.viewl -> (x Seq.:< xs)) = x + sumSeq xs
+sum10 = sumSeq $ Seq.fromList [1..10] -- 55
+```
+Pattern sysnonym 을 함께 이용하면 다음처럼 좀 더 편하게 할 수 있습니다.
+```haskell
+{-# LANGUAGE ViewPatterns, PatternSynonyms #-}
+import qualified Data.Sequence as Seq
+
+pattern Empty <- (Seq.viewl -> Seq.EmptyL) where Empty = Seq.empty
+pattern x:<xs <- (Seq.viewl -> (x Seq.:< xs)) where (:<) = (Seq.<|)
+pattern xs:>x <- (Seq.viewr -> (xs Seq.:> x)) where (:>) = (Seq.|>)
+
+sumSeq:: Seq.Seq Int -> Int
+sumSeq Empty = 0
+sumSeq (x:<xs) = x + sumSeq xs
+sumTen = sumSeq $ Seq.fromList [1..10] -- 55
+sum123 = sumSeq $ 1:<Seq.fromList [2,3] -- 6
 ```
 
 #### Vector 자료형
@@ -145,6 +170,10 @@ sayHello names = map (\case
 - Dependent Types
 
 ## 여섯 번째 시간
+
+## 더 읽을 거리
+#### Finger trees
+
 
 ## License
 Eclipse Public License
