@@ -72,7 +72,8 @@ sum123 = sumSeq $ 1:<Seq.fromList [2,3] -- 6, (:<) 을 Sequence constructor 로 
 ```
 
 #### Vector 자료형
-vector 패키지에 있습니다. Vector 자료형은 색인이 정수인 배열입니다. 구현은 HAMT(Hash Array Mapped Trie)로 되어 있습니다. Immutable vector 와 Mutable vector, 둘 다 있습니다. Data.Vector 모듈이 Immutable vector 이고 Data.Vector.Mutable 모듈이 Mutable vector 입니다. Immutable vector의 경우 기본 자료형인 List와 동작특성이 완전히 같습니다. 물론 성능특성은 다릅니다. 반면, Mutable vector 는 C 언어의 배열에 가깝습니다.
+vector 패키지에 있습니다. Vector 자료형은 색인이 정수인 배열입니다. 구현은 HAMT(Hash Array Mapped Trie)로 되어 있습니다. Immutable vector 와 Mutable vector, 둘 다 있습니다. Data.Vector 모듈이 Immutable vector 이고 Data.Vector.Mutable 모듈이 Mutable vector 입니다. Immutable vector의 경우 기본 자료형인 List와 동작특성이 완전히 같아서 1:1 로 대치할 수 있습니다. Fuctor 와 Foldable 같은 공통 type class 의 instance 이며 병렬코드에서도 잘 동작합니다. 물론 성능특성은 List 와는 확연히 다릅니다. 반면, Mutable vector 는 C 언어의 배열에 가깝습니다. Mutable vector 에 적용하는 연산들은 IO 또는 ST
+Monad 를 통해 해야 합니다.
 
 한편, vector 자료형은 담고 있는 자료의 형태에 따라 Boxed, Storable, Unboxed 의 세가지 구분이 또 있습니다.
 
@@ -93,9 +94,22 @@ vector 패키지에 있습니다. Vector 자료형은 색인이 정수인 배열
 그렇다면 언제 어떤 형태의 Vector 를 써야 할까요? 어떤 Vector 구현이 자신의 용도에 맞는지는 결국 profiling 과 benchmarking 으로 확인해야 합니다. 다만 일반적인 지침은 다음과 같습니다.
 담아둘 값이 Storable type class 의 instance 이면 Storable 을 씁니다. C FFI 가 필요없고 담아둘 값이 Prim type class의 instance이면 Unboxed 를 씁니다. 그 외의 모든 경우에는 Boxed 를 씁니다.
 
-List와 Vector를 비교하면 다음과 같습니다.
-Haskell 의 List 는 Immutable, Singly-linked list 입니다. 리스트의 맨 앞에 뭔가를 붙일 때마다 그 새로운 것을 위한 heap 메모리를 할당하고 원래 리스트의 맨 앞을 가리킬 포인터를 만들고, 새로 붙인 것을 가리킬 포인터를 만듭니다. 이렇게 포인터를 여러 개 가지고 있으니까 메모리도 많이 잡아먹고 리스트 순회나 색인접근 같은 동작은 시간이 오래 걸립니다.
-반면, Vector 는 하나의 메모리 영역을 통째로 할당하여 사용합니다. 그래서 임의 접근에 필요한 시간이 항상 일정하고, 새로 항목을 추가할 때 메모리도 적게 듭니다. 하지만 맨 앞에 뭔가를 추가할 때는 List 와 비교할 때 매우 효율이 낮습니다. 왜냐하면 새로 연속된 메모리 영역을 할당한 다음 옛날 것들을 복사하고, 새로운 항목을 추가하는 식으로 동작하기 때문입니다.
+Vector의 종류가 이렇게 여러 개인데 그 때마다 서로 다른 API 를 쓰는 것은 말이 안 되겠지요. 그래서 Data.Vector.Generic 모듈과 Data.Vector.Generic.Mutable 모듈이 있습니다. Immutable vector 에 대한 인터페이스는 Data.Vector.Generic 에 정의되어 있고, Mutable vector 에 대한 인터페이스는 Data.Vector.Generic.Mutable 에 정의되어 있습니다.
+
+한편, 기본 자료형인 List와 Vector를 비교하면 다음과 같습니다.
+Haskell 의 List 는 Immutable, Singly-linked list 입니다. 리스트의 맨 앞에 뭔가를 붙일 때마다 그 새로운 것을 위한 heap 메모리를 할당하고 원래 리스트의 맨 앞을 가리킬 포인터를 만들고, 새로 붙인 것을 가리킬 포인터를 만듭니다. 이렇게 포인터를 여러 개 가지고 있으니까 메모리도 많이 잡아먹고 리스트 순회나 색인접근 같은 동작은 시간이 오래 걸립니다(N 번째 항목을 가져오려면 N 번의 pointer dereferencing 이 필요함).
+반면, Vector 는 하나의 메모리 영역을 통째로 할당하여 사용합니다. 그래서 임의 위치 접근에 필요한 시간이 항상 일정하고, 새로 항목을 추가할 때 메모리도 적게 듭니다. 하지만 맨 앞에 뭔가를 추가할 때는 List 와 비교할 때 매우 효율이 낮습니다. 왜냐하면 새로 연속된 메모리 영역을 할당한 다음 옛날 것들을 복사하고, 새로운 항목을 추가하는 식으로 동작하기 때문입니다.
+
+이제 Vector 자료형의 사용법을 살펴보겠습니다. List 에서 사용하는 함수와 사용법과 동작이 완전히 같습니다.
+```haskell
+import qualified Data.Vector as V
+
+v = V.enumFromN 1 10::V.Vector Int
+V.filter odd v -- [1,3,5,7,9]
+V.map (*2) v -- [2,4,...,20]
+V.dropWhile (<6) v -- [6,7,8,9,10]
+V.head v -- 1
+```
 
 #### Array 자료형
 
