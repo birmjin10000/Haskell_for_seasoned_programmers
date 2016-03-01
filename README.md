@@ -91,7 +91,7 @@ vector 패키지에 있습니다. Vector 자료형은 색인이 정수인 배열
 * Data.Vector.Unboxed.Mutable - Unboxed, Mutable
 
 그렇다면 언제 어떤 형태의 Vector 를 써야 할까요? 어떤 Vector 구현이 자신의 용도에 맞는지는 결국 profiling 과 benchmarking 으로 확인해야 합니다. 다만 일반적인 지침은 다음과 같습니다.
-대부분의 경우 Boxed 를 씁니다. 단, C FFI 에 값을 전달해야 할 때는 Storable 을 씁니다.
+담아둘 값이 Storable type class 의 instance 이면 Storable 을 씁니다. C FFI 가 필요없고 담아둘 값이 Prim type class의 instance이면 Unboxed 를 씁니다. 그 외의 모든 경우에는 Boxed 를 씁니다.
 
 List와 Vector를 비교하면 다음과 같습니다.
 Haskell 의 List 는 Immutable, Singly-linked list 입니다. 리스트의 맨 앞에 뭔가를 붙일 때마다 그 새로운 것을 위한 heap 메모리를 할당하고 원래 리스트의 맨 앞을 가리킬 포인터를 만들고, 새로 붙인 것을 가리킬 포인터를 만듭니다. 이렇게 포인터를 여러 개 가지고 있으니까 메모리도 많이 잡아먹고 리스트 순회나 색인접근 같은 동작은 시간이 오래 걸립니다.
