@@ -9,7 +9,7 @@ Monad Transformers, Arrow, GADTs, Type Families, RankNTypes, Applicative Functor
 ## 사전 학습
 - stackage
 - cabal
-- Vector, Array, Sequence
+- Sequence, Vector, Array
 
 Haskell로 프로젝트를 할 때 cabal 을 통해 패키지를 설치하면 의존성 문제를 해결하는데 많은 시간이 쓰일 때가 있습니다. 이런 문제를 해결하고자 [stack](https://github.com/commercialhaskell/stack)과 같은 도구가 있습니다. Mac OS X의 경우 homebrew 로 설치하는 것이 가장 간편합니다. 설치 후에 다음과 같이 my-project 라는 이름으로 프로젝트를 하나 만들고 빌드 및 실행해 봅니다.
 
@@ -109,6 +109,44 @@ V.filter odd v -- [1,3,5,7,9]
 V.map (*2) v -- [2,4,...,20]
 V.dropWhile (<6) v -- [6,7,8,9,10]
 V.head v -- 1
+V.foldr (+) 0 v -- 55
+```
+이번에는 Unboxed 형태로 사용해보겠습니다. 위의 Boxed 형태와 똑같은 인터페이스를 제공합니다.
+```haskell
+import qualified Data.Vector.Unboxed as U
+
+v = U.enumFromN 1 10::U.Vector Int
+U.filter odd v -- [1,3,5,7,9]
+U.map (*2) v -- [2,4,...,20]
+-- 이후 생략..
+```
+Mutable vector 인 경우의 예를 보겠습니다. 아래 코드는 0부터 9사이의 숫자로 난수를 발생시켰을 때 얼마만큼의 빈도로 각 숫자가 나오는지를 보여주는 코드입니다.
+```haskell
+import qualified Data.Vector.Unboxed.Mutable as U
+import Data.Vector.Unboxed (freeze)
+import System.Random (randomRIO)
+
+showDistribution:: IO ()
+showDistribution = do
+  v <- U.replicate 10 (0::Int) -- 크기가 10인 vector 를 만들고 0으로 채웁니다.
+  U.replicateM (10^6) $ do
+    i <- randomRIO (0,9)
+    oldCount <- U.read v i -- vector의 i 번째 위치의 값을 읽어옵니다.
+    U.write v i (oldCount + 1) -- vector의 i 번째 위치의 값을 갱신합니다.
+  immutableV <- freeze v -- Immutable 한 복사본을 만듭니다.
+  print immutableV
+```
+한편, vector-algorithms 이라는 패키지가 있는데 Vector 에 대해 사용할 수 있는 알고리즘들을 가지고 있습니다. 주로 정렬에 관한 알고리즘들인데 다음 예제를 보겠습니다.
+```haskell
+import Data.Vector.Algorithms.Merge (sort)
+import qualified Data.Vector.Generic.Mutable as M
+import qualified Data.Vector.Unboxed as U
+import System.Random (randomRIO)
+
+mergeSortV = do
+  v <- M.replicateM 100 $ randomRIO (0, 999::Int)
+  sort v
+  U.freeze v >>= print
 ```
 
 #### Array 자료형
@@ -212,7 +250,7 @@ sayHello names = map (\case
 ## 더 읽을 거리
 #### Finger trees
 #### Hash Array Mapped Trie (HAMT)
-
+#### Stream fusion
 
 ## License
 Eclipse Public License
