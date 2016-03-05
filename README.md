@@ -10,6 +10,8 @@ Monad Transformers, Arrow, GADTs, Type Families, RankNTypes, Applicative Functor
 - stackage
 - cabal
 - Sequence, Vector, Array
+- ViewPatterns
+- Pattern Synonyms
 
 Haskell로 프로젝트를 할 때 cabal 을 통해 패키지를 설치하면 의존성 문제를 해결하는데 많은 시간이 쓰일 때가 있습니다. 이런 문제를 해결하고자 [stack](https://github.com/commercialhaskell/stack)과 같은 도구가 있습니다. Mac OS X의 경우 homebrew 로 설치하는 것이 가장 간편합니다. 설치 후에 다음과 같이 my-project 라는 이름으로 프로젝트를 하나 만들고 빌드 및 실행해 봅니다.
 
@@ -150,8 +152,39 @@ mergeSortV = do
 ```
 
 #### Array 자료형
+array 패키지에 있습니다. array 패키지의 경우 색인으로 정수뿐만 아니라 Ix("Indexable" 정도의 뜻으로 생각) type class 에 속하는 모든 것을 사용할 수 있다는 특징이 있습니다. array 패키지도 Immutable 과 Mutable 두 가지 구현을 제공하는데 기본이 되는 Data.Array 모듈은 Immutable & Lazy 합니다. 그래서 피보나치 수열 만들기, 동적계획법 등의 경우에 사용하기 좋습니다. 이러한 경우 말고는 연속된 구조의 자료가 필요할 때는 대부분의 경우 vector 패키지를 사용하도록 합니다. array 패키지보다 vector 패키지가 훨씬 성능도 우수하고 API도 풍부합니다. vector 패키지가 efficient array 를 표방하고 있음을 기억합시다.
 
+Data.Array 모듈의 사용 예를 보겠습니다. array constructor 는 array, listArray, accumArray 이렇게 세 개가 있습니다.
+먼저 array 함수는 두 개의 인자를 받습니다. 첫 번째 인자는 (1, 3) 과 같은 색인의 범위를 tuple 로 받습니다. 두 번째 인자는 (색인, 값) tuple 의 목록, 즉 association list 입니다. 다음 코드를 봅니다.
+```haskell
+import Data.Array
 
+a = array(1,3)[(1,'a'),(2,'b'),(3,'c')] -- array (1,3) [(1,'a'),(2,'b'),(3,'c')]
+
+a!1 -- 'a', 색인으로 값을 가져옵니다.
+bounds a -- (1,3), 배열의 최소색인과 최대색인의 쌍을 가져옵니다.
+indices a -- [1,2,3], 배열의 색인 목록을 가져옵니다.
+elems a -- "abc", 배열의 값들의 목록을 가져옵니다.
+assocs a -- [(1,'a'),(2,'b'),(3,'c')], 배열의 (색인, 값) 쌍 목록을 가져옵니다.
+```
+다음으로 listArray 함수는 array 함수와 달리 두번째 인자로 (색인,값) tuple 의 목록 대신 값의 목록을 받습니다.
+```haskell
+b = listArray (1,3) ['a'..] -- array (1,3) [(1,'a'),(2,'b'),(3,'c')]
+```
+마지막으로 accumArray 함수는 accumlated array 를 만든다는 뜻으로 첫번째 인자로 accumulating function 을 받습니다. 이는 마지막 인자로 받는 association list 에서 겹치는 색인이 있을 경우 이 색인들의 값을 accumulating function 으로 합치기 때문입니다. 다음 코드를 봅시다.
+```haskell
+c = accumArray (+) 1 ('a','c') [('a',1),('b',2),('a',3),('a',4)] -- array ('a','c') [('a',9),('b',3),('c',1)]
+
+```
+이제 Array 를 이용하여 fibonacci 수열을 만들어봅시다. Lazy evalution 을 이용합니다.
+```haskell
+fibonacci:: Int -> Array Int Integer
+fibonacci n = a where a = array (0,n) ([(0,1),(1,1)] ++ [(i, a!(i-2) + a!(i-1))|i<-[2..n]])
+```
+만약 Array 의 일부 값을 바꾸고 싶을 때는 다음의 incremental update 함수를 이용합니다.
+```haskell
+c // [('a',11)] -- array ('a','c') [('a',11),('b',3),('c',1)]
+```
 
 숙제) 지뢰찾기 게임을 Haskell로 구현해 보세요. 다음 MineSweeper.hs 코드를 완성해서 제출하세요.
 
@@ -162,7 +195,6 @@ mergeSortV = do
 - BinaryLiterals
 - OverloadedStrings
 - LambdaCase
-- ViewPatterns
 - BangPatterns
 - FlexibleInstances
 - MultiParamTypeClasses
@@ -234,9 +266,9 @@ sayHello names = map (\case
 - TypeFamillies
 
 ## 세 번째 시간
-- Pattern Synonyms
 - Standalone deriving
 - Typed holes
+- REPA(REgular PArallel arrays)
 
 ## 네 번째 시간
 - DWARF based debugging
