@@ -201,10 +201,10 @@ Data.Sequence, Data.Vector, Data.Array 는 모두 순차적인 자료구조입�
 - BangPatterns
 - FlexibleInstances
 - MultiParamTypeClasses
+- FunctionalDependencies
 - TypeSynonymInstances
 - ParallelListComp
 - TransformListComp
-- FunctionalDependencies
 - FlexibleContexts
 - RecordWildCards
 - RecursiveDo
@@ -266,6 +266,48 @@ mean xs = s / l
   where (s,l) = foldl' step (0,0) xs
         step (!x,!y) a = (x+a,y+1)
 ```
+Haskell 에서 type class 의 인스턴스를 만들 때는 그 형식이 "type 이름 + type variable 목록" 이어야 합니다. 그래서 다음 처럼 이를 벗어난 인스턴스를 만들면 컴파일 에러가 납니다.
+```haskell
+class Something a where
+  doSomething:: a -> Integer
+instance Something [Char] where
+  doSomething x = 1
+```
+    Illegal instance declaration for ‘Something [Char]’
+      (All instance types must be of the form (T a1 ... an)
+       where a1 ... an are *distinct type variables*,
+       and each type variable appears at most once in the instance head.
+       Use FlexibleInstances if you want to disable this.)
+    In the instance declaration for ‘Something [Char]’
+
+이 때는 FlexibleInstances 확장을 사용하면 좀 더 유연하게 인스턴스를 만들 수 있습니다. 이번에는 tuple 을 Vector 의 인스턴스로 만들어봅시다.
+```haskell
+{-# LANGUAGE FlexibleInstances #-}
+class Vector v where
+  distance:: v -> v -> Double
+instance Vector (Double, Double) where
+  distance (a,b) (c,d) = sqrt $ (c-a)^2 + (d-b)^2
+
+d = distance (1,2) (8.2::Double, 9.9::Double) -- 10.688779163215974
+```
+지금까지는 type class 를 만들 때 type variable 을 하나만 사용했습니다. 그런데 다음과 같은 경우에는 type parameter 가 두 개가 필요합니다. container 를 뜻하는 type class 를 만들려면 다음과 같이 할 수 있을 겁니다. 그런데 이를 컴파일하면 에러가 납니다.
+```haskell
+class Eq e => Collection c e where
+  insert:: c -> e -> c
+  member:: c -> e -> Bool
+
+instance Eq a => Collection [a] a where
+  insert xs x = x:xs
+  member = flip elem
+```
+    Too many parameters for class ‘Collection’
+    (Use MultiParamTypeClasses to allow multi-parameter classes)
+    In the class declaration for ‘Collection’
+
+이 때 MultiParamTypeClasses 확장을 이용하면 여러 개의 type variable 을 받을 수 있는 type class 를 정의할 수 있습니다. 직접 해보시기 바랍니다.
+
+그런데 이렇게 정의했을 때 이 type class 정의에서 우리는 이미 알고 있지만 컴파일러는 모르는 정보가 생겼습니다. 그건 바로 Collection 의 type 이 해당 Collection 의 원소의 type 을 결정한다는 정보입니다. 무슨 말이냐하면 어떤 Collection 의 type 이 [a] 꼴이면 그것의 원소의 type 은 a 가 된다는 것입니다. 예를 하나 더 들어보면 Collection 의 type 이 Hashmap a 이면 그것의 원소의 type 은 a 가 되는 것이 자명합니다. 우리는 이 정보를 알고 있는데, 우리가 Collection type class 를 정의한 것에서는 이것에 대한
+정보가 없기 때문에 compiler 역시 이에 대한 정보를 알지 못합니다. 그 결과 필요 이상으로 일반화된 type 의 함수를 만들게 됩니다.
 
 
 ## 두 번째 시간
@@ -276,6 +318,11 @@ mean xs = s / l
 - LiberalTypeSynonyms
 - ExistentialQuantification
 - TypeFamillies
+- DefaultSignatures
+- ConstraintKinds
+- DataKinds
+- PolyKinds
+- KindSignatures
 
 ## 세 번째 시간
 - Standalone deriving
