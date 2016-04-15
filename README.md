@@ -21,7 +21,7 @@ Haskell로 프로젝트를 할 때 cabal 을 통해 패키지를 설치하면 �
     stack exec my-project-exe
 
 #### Sequence 자료형
-Data.Map, Data.Set 모듈과 함께 cantainers 패키지에 있습니다. 구현이 finger tree로 되어 있는 매우 효율적인 자료구조입니다. List 를 사용하는 것이 너무 느린 경우에는 Sequence 를 쓰도록 합니다. Sequence 의 경우 맨 처음과 맨 끝을 접근하는 데 드는 시간과 Sequence 두 개를 붙이는 데 드는 시간이 모두은 O(1) 이고, 중간에 있는 것을 접근하는데 드는 시간은 O(log n) 입니다. 단, Sequence 의 경우 유한자료구조입니다. 즉, List 와는 달리 strict & finite 합니다.
+Data.Map, Data.Set 모듈과 함께 cantainers 패키지에 있습니다. 구현이 finger tree로 되어 있는 매우 효율적인 자료구조입니다. List 를 사용하는 것이 너무 느린 경우에는 Sequence 를 쓰도록 합니다. Sequence 의 경우 맨 처음과 맨 끝을 접근하는 데 드는 시간과 Sequence 두 개를 붙이는 데 드는 시간이 모두 O(1) 이고, 중간에 있는 것을 접근하는데 드는 시간은 O(log n) 입니다. 단, Sequence 의 경우 유한자료구조입니다. 즉, List 와는 달리 strict & finite 합니다.
 ```haskell
 import qualified Data.Sequence as Seq
 
@@ -35,14 +35,17 @@ import Data.Sequence ((<|),(|>),(><))
 import qualified Data.Sequence as Seq
 import qualified Data.Foldable as F
 
-a = 0 <| Seq.singleton 1 -- fromList [0,1], 맨 앞에 붙입니다.
-b = Seq.singleton 1 |> 2 -- fromList [1,2], 맨 뒤에 붙입니다.
+a = 0 <| Seq.singleton 1 -- fromList [0,1], 맨 앞에 붙입니다, O(1)
+b = Seq.singleton 1 |> 2 -- fromList [1,2], 맨 뒤에 붙입니다, O(1)
 left = Seq.fromList [1,2,3]
 right = Seq.fromList [7,8]
-joined = left >< right -- fromList [1,2,3,7,8], 두 개를 이어 붙입니다.
+joined = left >< right -- fromList [1,2,3,7,8], 두 개를 이어 붙입니다, O(log(min(n1,n2)))
+{- 아래의 index, update, take, drop, splitAt 함수는 모두 O(log(min(i,n-i))) 의 시간이 걸립니다. -}
 thirdItem = Seq.index joined 2 -- 3, 색인으로 접근합니다.
+modified = Seq.update 4 14 joined -- fromList [1,2,3,7,14], 특정 위치의 값을 바꿉니다.
 take2 = Seq.take 2 joined -- fromList [1,2]
-drop2 = Seq.drop 2 joined -- fromList [3,7,8], take과 drop 함수는 O(log(min(i,n-i))) 시간이 걸립니다.
+drop2 = Seq.drop 2 joined -- fromList [3,7,8]
+splitted = Seq.splitAt 2 joined -- (fromList [1,2], fromList [3,7,8])
 totalSum = F.foldr1 (+) joined -- 21
 listForm = F.toList joined -- [1,2,3,7,8]
 ```
@@ -56,7 +59,7 @@ sumSeq (Seq.viewl -> Seq.EmptyL) = 0
 sumSeq (Seq.viewl -> (x Seq.:< xs)) = x + sumSeq xs
 sumTen = sumSeq $ Seq.fromList [1..10] -- 55
 ```
-Pattern sysnonym 을 함께 이용하면 다음처럼 좀 더 편하게 할 수 있습니다.
+Pattern synonym 을 함께 쓰면 다음처럼 좀 더 편하게 할 수 있습니다.
 ```haskell
 {-# LANGUAGE ViewPatterns, PatternSynonyms #-}
 import qualified Data.Sequence as Seq
@@ -185,9 +188,16 @@ fibonacci n = a where a = array (0,n) ([(0,1),(1,1)] ++ [(i, a!(i-2) + a!(i-1))|
 ```haskell
 c // [('a',11)] -- array ('a','c') [('a',11),('b',3),('c',1)]
 ```
-
-Data.Sequence, Data.Vector, Data.Array 는 모두 순차적인 자료구조입니다. 언제 뭘 써야 할 까요? 먼저 Array 와 Vector 를 비교하면, 대부분의 경우 Vector를 쓰도록 합니다. 이유는 앞에서 설명했습니다. 그렇다면 Sequence 와 Vector 를 비교하면 어떨까요. Vector 는 하나로 이어진 메모리영역을 통째로 잡고 쓰는 만큼 메모리공간을 효율적으로 사용합니다. 그러나 두 개의 Vector 를 이어붙이거나 또는 하나의 Vector 를 두개로 쪼갤 때, 그리고 복사할 때의 성능은 좋지 않습니다. 반면, Sequence 는 tree 를 자료구조로
+#### 언제 뭘 쓸까요?
+Data.Sequence, Data.Vector, Data.Array 는 모두 순차적인 자료구조입니다. 언제 뭘 써야 할 까요? 먼저 Array 와 Vector 를 비교하면, 대부분의 경우 Vector를 쓰도록 합니다. 이유는 앞에서 설명했습니다. 그렇다면 Sequence 와 Vector 를 비교하면 어떨까요. Vector 는 하나로 이어진 메모리영역을 통째로 잡고 쓰는 만큼 메모리공간을 효율적으로 사용합니다. 그러나 두 개의 Vector 를 이어붙일 때, 그리고 복사할 때의 성능은 좋지 않습니다. 반면, Sequence 는 tree 를 자료구조로
 사용하기 때문에 Vector 보다는 메모리를 많이 사용합니다. 하지만 두 개의 Sequence 를 이어붙이는 동작의 성능은 O(log(min(n1,n2))) 로 우수하고, 복사 역시 O(log n) 으로 성능이 준수합니다. 정리하면, 아주 많은 양의 자료를 순차적으로 또는 임의 접근으로 처리할 때는 Vector 를 사용하고, 자료를 이어 붙이거나 쪼개는 동작을 많이 해야 할 때는 Sequence 를 쓰도록 합니다.
+
+                  |Sequence          | Vector
+:----------------:|:----------------:|:----------------:
+자료구조          |Finger tree       |HAMT
+임의접근          |O(log n)          |O(1)
+두개 합치기       |O(log(min(n1,n2)))|O(n1+n2)
+앞뒤에 하나 불이기|O(1)              |O(n)
 
 숙제) 지뢰찾기 게임을 Haskell로 구현해 보세요. 다음 MineSweeper.hs 코드를 완성해서 제출하세요.
 
