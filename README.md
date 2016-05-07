@@ -89,6 +89,27 @@ Monad 를 통해 해야 합니다.
 
 각각의 Vector 자료형 구현에 해당하는 모듈은 다음과 같습니다.
 
+<table>
+  <tr>
+    <td rowspan="2">Boxed</td><td>Data.Vector</td><td>Immutable</td>
+  </tr>
+  <tr>
+    <td>Data.Vector.Mutable</td><td>Mutable</td>
+  </tr>
+  <tr>
+    <td rowspan="2">Unboxed</td><td>Data.Vector.Unboxed</td><td>Immutable</td>
+  </tr>
+  <tr>
+    <td>Data.Vector.Unboxed</td><td>Mutable</td>
+  </tr>
+  <tr>
+    <td rowspan="2">Storable</td><td>Data.Vector.Storable</td><td>Immutable</td>
+  </tr>
+  <tr>
+    <td>Data.Vector.Storable.Mutable</td><td>Mutable</td>
+  </tr>
+</table>
+
 * Data.Vector - Boxed, Immutable
 * Data.Vector.Mutable - Boxed, Mutable
 * Data.Vector.Storable - Storable, Immutable
@@ -97,9 +118,12 @@ Monad 를 통해 해야 합니다.
 * Data.Vector.Unboxed.Mutable - Unboxed, Mutable
 
 그렇다면 언제 어떤 형태의 Vector 를 써야 할까요? 어떤 Vector 구현이 자신의 용도에 맞는지는 결국 profiling 과 benchmarking 으로 확인해야 합니다. 다만 일반적인 지침은 다음과 같습니다.
-담아둘 값이 Storable type class 의 instance 이면 Storable 을 씁니다. C FFI 가 필요없고 담아둘 값이 Prim type class의 instance이면 Unboxed 를 씁니다. 그 외의 모든 경우에는 Boxed 를 씁니다.
 
-Vector의 종류가 이렇게 여러 개인데 그 때마다 서로 다른 API 를 쓰는 것은 말이 안 되겠지요. 그래서 Data.Vector.Generic 모듈과 Data.Vector.Generic.Mutable 모듈이 있습니다. Immutable vector 에 대한 인터페이스는 Data.Vector.Generic 에 정의되어 있고, Mutable vector 에 대한 인터페이스는 Data.Vector.Generic.Mutable 에 정의되어 있습니다.
+* Unboxed: 대부분의 용도에 이걸 씁니다.
+* Boxed: 사용하려는 자료구조가 복합적인 경우에는 이걸 씁니다.
+* Storable: C FFI 를 사용할 때는 이걸 씁니다.
+
+Vector의 종류가 세 개나 되는데 그 때마다 서로 다른 API 를 써야 된다면 Vector 를 사용하는 라이브러리를 만들 때는 세 가지 인터페이스를 모두 작성해야 하는 불편함이 있을 것입니다. 그래서 Data.Vector.Generic 모듈과 Data.Vector.Generic.Mutable 모듈이 있습니다. Immutable vector 에 대한 인터페이스는 Data.Vector.Generic 에 정의되어 있고, Mutable vector 에 대한 인터페이스는 Data.Vector.Generic.Mutable 에 정의되어 있습니다. 라이브러리를 작성하는 경우에는 이 인터페이스를 사용합니다.
 
 한편, 기본 자료형인 List와 Vector를 비교하면 다음과 같습니다.
 Haskell 의 List 는 Immutable, Singly-linked list 입니다. 리스트의 맨 앞에 뭔가를 붙일 때마다 그 새로운 것을 위한 heap 메모리를 할당하고 원래 리스트의 맨 앞을 가리킬 포인터를 만들고, 새로 붙인 것을 가리킬 포인터를 만듭니다. 이렇게 포인터를 여러 개 가지고 있으니까 메모리도 많이 잡아먹고 리스트 순회나 색인접근 같은 동작은 시간이 오래 걸립니다(N 번째 항목을 가져오려면 N 번의 pointer dereferencing 이 필요함).
@@ -125,7 +149,7 @@ U.filter odd v -- [1,3,5,7,9]
 U.map (*2) v -- [2,4,...,20]
 -- 이후 생략..
 ```
-Mutable vector 인 경우의 예를 보겠습니다. 아래 코드는 0부터 9사이의 숫자로 난수를 발생시켰을 때 얼마만큼의 빈도로 각 숫자가 나오는지를 보여주는 코드입니다.
+Mutable vector 예시를 보겠습니다. 아래 코드는 0부터 9사이의 숫자로 난수를 10<sup>6</sup>개 만들었을때 얼마만큼의 빈도로 각 숫자가 나오는지 보여줍니다.
 ```haskell
 import qualified Data.Vector.Unboxed.Mutable as U
 import Data.Vector.Unboxed (freeze)
@@ -189,7 +213,7 @@ fibonacci n = a where a = array (0,n) ([(0,1),(1,1)] ++ [(i, a!(i-2) + a!(i-1))|
 c // [('a',11)] -- array ('a','c') [('a',11),('b',3),('c',1)]
 ```
 #### 언제 뭘 쓸까요?
-Data.Sequence, Data.Vector, Data.Array 는 모두 순차적인 자료구조입니다. 언제 뭘 써야 할 까요? 먼저 Array 와 Vector 를 비교하면, 대부분의 경우 Vector를 쓰도록 합니다. 이유는 앞에서 설명했습니다. 그렇다면 Sequence 와 Vector 를 비교하면 어떨까요. Vector 는 하나로 이어진 메모리영역을 통째로 잡고 쓰는 만큼 메모리공간을 효율적으로 사용합니다. 그러나 두 개의 Vector 를 이어붙일 때, 그리고 복사할 때의 성능은 좋지 않습니다. 반면, Sequence 는 tree 를 자료구조로
+Data.Sequence, Data.Vector, Data.Array 는 모두 순차적인 자료구조입니다. 언제 뭘 써야 할까요? 먼저 Array 와 Vector 를 비교하면, 대부분의 경우 Vector를 쓰도록 합니다. 이유는 앞에서 설명했습니다. 그렇다면 Sequence 와 Vector 를 비교하면 어떨까요. Vector 는 하나로 이어진 메모리영역을 통째로 잡고 쓰는 만큼 메모리공간을 효율적으로 사용합니다. 그러나 두 개의 Vector 를 이어붙일 때, 그리고 복사할 때의 성능은 좋지 않습니다. 반면, Sequence 는 tree 를 자료구조로
 사용하기 때문에 Vector 보다는 메모리를 많이 사용합니다. 하지만 두 개의 Sequence 를 이어붙이는 동작의 성능은 O(log(min(n1,n2))) 로 우수하고, 복사 역시 O(log n) 으로 성능이 준수합니다. 정리하면, 아주 많은 양의 자료를 순차적으로 또는 임의 접근으로 처리할 때는 Vector 를 사용하고, 자료를 이어 붙이거나 쪼개는 동작을 많이 해야 할 때는 Sequence 를 쓰도록 합니다.
 
                   |Sequence          | Vector
@@ -197,7 +221,7 @@ Data.Sequence, Data.Vector, Data.Array 는 모두 순차적인 자료구조입�
 자료구조          |Finger tree       |HAMT
 임의접근          |O(log n)          |O(1)
 두개 합치기       |O(log(min(n1,n2)))|O(n1+n2)
-앞뒤에 하나 불이기|O(1)              |O(n)
+앞뒤에 하나 붙이기|O(1)              |O(n)
 
 숙제) 지뢰찾기 게임을 Haskell로 구현해 보세요. 다음 MineSweeper.hs 코드를 완성해서 제출하세요.
 
@@ -349,6 +373,7 @@ instance Eq a => Collection [a] a where
 ## 여섯 번째 시간
 
 ## 더 읽을 거리
+#### Zipper
 #### Finger trees
 #### Hash Array Mapped Trie (HAMT)
 #### Stream fusion
