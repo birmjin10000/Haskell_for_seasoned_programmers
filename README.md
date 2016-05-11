@@ -90,32 +90,13 @@ Monad 를 통해 해야 합니다.
 각각의 Vector 자료형 구현에 해당하는 모듈은 다음과 같습니다.
 
 <table>
-  <tr>
-    <td rowspan="2">Boxed</td><td>Data.Vector</td><td>Immutable</td>
-  </tr>
-  <tr>
-    <td>Data.Vector.Mutable</td><td>Mutable</td>
-  </tr>
-  <tr>
-    <td rowspan="2">Unboxed</td><td>Data.Vector.Unboxed</td><td>Immutable</td>
-  </tr>
-  <tr>
-    <td>Data.Vector.Unboxed</td><td>Mutable</td>
-  </tr>
-  <tr>
-    <td rowspan="2">Storable</td><td>Data.Vector.Storable</td><td>Immutable</td>
-  </tr>
-  <tr>
-    <td>Data.Vector.Storable.Mutable</td><td>Mutable</td>
-  </tr>
+  <tr><td rowspan="2">Boxed</td><td>Data.Vector</td><td>Immutable</td></tr>
+  <tr><td>Data.Vector.Mutable</td><td>Mutable</td></tr>
+  <tr><td rowspan="2">Unboxed</td><td>Data.Vector.Unboxed</td><td>Immutable</td></tr>
+  <tr><td>Data.Vector.Unboxed.Mutable</td><td>Mutable</td></tr>
+  <tr><td rowspan="2">Storable</td><td>Data.Vector.Storable</td><td>Immutable</td></tr>
+  <tr><td>Data.Vector.Storable.Mutable</td><td>Mutable</td></tr>
 </table>
-
-* Data.Vector - Boxed, Immutable
-* Data.Vector.Mutable - Boxed, Mutable
-* Data.Vector.Storable - Storable, Immutable
-* Data.Vector.Storable.Mutable - Storable, Mutable
-* Data.Vector.Unboxed - Unboxed, Immutable
-* Data.Vector.Unboxed.Mutable - Unboxed, Mutable
 
 그렇다면 언제 어떤 형태의 Vector 를 써야 할까요? 어떤 Vector 구현이 자신의 용도에 맞는지는 결국 profiling 과 benchmarking 으로 확인해야 합니다. 다만 일반적인 지침은 다음과 같습니다.
 
@@ -123,7 +104,7 @@ Monad 를 통해 해야 합니다.
 * Boxed: 사용하려는 자료구조가 복합적인 경우에는 이걸 씁니다.
 * Storable: C FFI 를 사용할 때는 이걸 씁니다.
 
-Vector의 종류가 세 개나 되는데 그 때마다 서로 다른 API 를 써야 된다면 Vector 를 사용하는 라이브러리를 만들 때는 세 가지 인터페이스를 모두 작성해야 하는 불편함이 있을 것입니다. 그래서 Data.Vector.Generic 모듈과 Data.Vector.Generic.Mutable 모듈이 있습니다. Immutable vector 에 대한 인터페이스는 Data.Vector.Generic 에 정의되어 있고, Mutable vector 에 대한 인터페이스는 Data.Vector.Generic.Mutable 에 정의되어 있습니다. 라이브러리를 작성하는 경우에는 이 인터페이스를 사용합니다.
+Vector의 종류가 세 개나 되는데 그 때마다 서로 다른 API 를 써야 된다면 Vector 를 사용하는 라이브러리를 만들 때는 세 가지 인터페이스를 모두 작성해야 하는 불편함이 있을 것입니다. 그래서 **Data.Vector.Generic** 모듈과 **Data.Vector.Generic.Mutable** 모듈이 있습니다. Immutable vector 에 대한 인터페이스는 Data.Vector.Generic 에 정의되어 있고, Mutable vector 에 대한 인터페이스는 Data.Vector.Generic.Mutable 에 정의되어 있습니다. 라이브러리를 작성하는 경우에는 이 인터페이스를 사용합니다.
 
 한편, 기본 자료형인 List와 Vector를 비교하면 다음과 같습니다.
 Haskell 의 List 는 Immutable, Singly-linked list 입니다. 리스트의 맨 앞에 뭔가를 붙일 때마다 그 새로운 것을 위한 heap 메모리를 할당하고 원래 리스트의 맨 앞을 가리킬 포인터를 만들고, 새로 붙인 것을 가리킬 포인터를 만듭니다. 이렇게 포인터를 여러 개 가지고 있으니까 메모리도 많이 잡아먹고 리스트 순회나 색인접근 같은 동작은 시간이 오래 걸립니다(N 번째 항목을 가져오려면 N 번의 pointer dereferencing 이 필요함).
@@ -149,22 +130,99 @@ U.filter odd v -- [1,3,5,7,9]
 U.map (*2) v -- [2,4,...,20]
 -- 이후 생략..
 ```
+그리고 Vector 를 만들 때 replicate 와 replicateM 함수를 자주 사용합니다.
+```haskell
+import qualified Data.Vector.Unboxed as U
+import System.Random (randomRIO)
+
+myV::U.Vector Char
+myV = U.replicate 10 'a' -- 길이 10 짜리 vector 를 만들고 값을 'a' 로 채웁니다.
+
+myV2::IO (U.Vector Int)
+myV2 = U.replicateM 20 $ do -- 여기서 replicateM 은 monadic action 을 20번 수행한 결과로 벡터를 만듭니다.
+         i <- randomRIO(0,9)
+         return i
+```
+위 코드를 ghci 에서 load 한 다음 Vector 의 내용들을 다음처럼 찍어볼 수 있습니다.
+
+    > print myV
+    "aaaaaaaaaa"
+    > print =<< myV2
+    [3,2,5,2,3,8,0,5,7,0,2,8,0,8,0,3,5,0,6,7]
+
 Mutable vector 예시를 보겠습니다. 아래 코드는 0부터 9사이의 숫자로 난수를 10<sup>6</sup>개 만들었을때 얼마만큼의 빈도로 각 숫자가 나오는지 보여줍니다.
 ```haskell
-import qualified Data.Vector.Unboxed.Mutable as U
+import qualified Data.Vector.Unboxed.Mutable as UM
 import Data.Vector.Unboxed (freeze)
 import System.Random (randomRIO)
 
 showDistribution:: IO ()
 showDistribution = do
-  v <- U.replicate 10 (0::Int) -- 크기가 10인 vector 를 만들고 0으로 채웁니다.
-  U.replicateM (10^6) $ do
+  v <- UM.replicate 10 (0::Int) -- 크기가 10인 vector 를 만들고 0으로 채웁니다.
+  UM.replicateM (10^6) $ do -- do block(아래 세 줄) 을 10^6 번 실행합니다.
     i <- randomRIO (0,9)
-    oldCount <- U.read v i -- vector의 i 번째 위치의 값을 읽어옵니다.
-    U.write v i (oldCount + 1) -- vector의 i 번째 위치의 값을 갱신합니다.
+    oldCount <- UM.read v i -- vector의 i 번째 위치의 값을 읽어옵니다.
+    UM.write v i (oldCount + 1) -- mutable vector의 i 번째 위치의 값을 갱신합니다.
   immutableV <- freeze v -- Immutable 한 복사본을 만듭니다.
   print immutableV
 ```
+이번에는 Boxed & Mutable vector 의 예시를 보겠습니다.
+```haskell
+import qualified Data.Vector.Mutable as M
+import qualified Data.Vector as V(create,Vector())
+data Point = Point Double Double
+data PointSum = PointSum Int Double Double
+addToPointSum::Point -> PointSum -> PointSum
+addToPointSum (Point x y) (PointSum n xs ys) = PointSum (n+1) (x+xs) (y+ys)
+
+assign:: [Point] -> V.Vector PointSum
+assign points = V.create $ do -- create 함수는 do block 에 있는 monadic action 을 수행하여 Vector 를 만듭니다.
+  vector <- M.replicate 2 (PointSum 0 0 0)
+  let addPoint p@(Point x y) = do
+      let index = if (y >= x) then 0 else 1
+      pointSum <- M.read vector index
+      M.write vector index $! addToPointSum p pointSum
+  mapM_ addPoint points
+  return vector
+```
+위 코드에서는 PointSum 자료형을 원소로 하는 Boxed vector 를 만들었습니다. 이처럼 Int, Char 와 같은 단순 자료형이 아닌 복합 자료형의 경우 Boxed vector 를 사용합니다. 만약에 PointSum 자료형을 가지고 Unboxed vector 를 만들려고 한다면 PointSum 자료형을 Unboxed instance 로 만들어야 하는데 이 경우 적지 않은 코드를 프로그래머가 작성해주어야 합니다. 예를 들어 다음 코드를 보면 Point3D 라는 자료형을 Unboxed 의 Instance 로 만들어주기 위해 작성해야 하는 코드양이 적지 않음을 알 수 있습니다.
+```haskell
+{-# LANGUAGE TypeFamilies, MultiParamTypeClasses #-}
+
+import qualified Data.Vector.Generic as G
+import qualified Data.Vector.Generic.Mutable as M
+import Control.Monad (liftM, zipWithM_)
+import Data.Vector.Unboxed.Base
+
+data Point3D = Point3D Int Int Int
+
+newtype instance MVector s Point3D = MV_Point3D (MVector s Int)
+newtype instance Vector    Point3D = V_Point3D  (Vector    Int)
+instance Unbox Point3D
+
+instance M.MVector MVector Point3D where
+  basicLength (MV_Point3D v) = M.basicLength v `div` 3
+  basicUnsafeSlice a b (MV_Point3D v) = MV_Point3D $ M.basicUnsafeSlice (a*3) (b*3) v
+  basicOverlaps (MV_Point3D v0) (MV_Point3D v1) = M.basicOverlaps v0 v1
+  basicUnsafeNew n = liftM MV_Point3D (M.basicUnsafeNew (3*n))
+  basicInitialize _ = return ()
+  basicUnsafeRead (MV_Point3D v) n = do
+              [a,b,c] <- mapM (M.basicUnsafeRead v) [3*n,3*n+1,3*n+2]
+              return $ Point3D a b c
+  basicUnsafeWrite (MV_Point3D v) n (Point3D a b c) =
+              zipWithM_ (M.basicUnsafeWrite v) [3*n,3*n+1,3*n+2] [a,b,c]
+
+instance G.Vector Vector Point3D where
+  basicUnsafeFreeze (MV_Point3D v) = liftM V_Point3D (G.basicUnsafeFreeze v)
+  basicUnsafeThaw (V_Point3D v) = liftM MV_Point3D (G.basicUnsafeThaw v)
+  basicLength (V_Point3D v) = G.basicLength v `div` 3
+  basicUnsafeSlice a b (V_Point3D v) = V_Point3D $ G.basicUnsafeSlice (a*3) (b*3) v
+  basicUnsafeIndexM (V_Point3D v) n = do
+              [a,b,c] <- mapM (G.basicUnsafeIndexM v) [3*n,3*n+1,3*n+2]
+              return $ Point3D a b c
+```
+이러한 작업을 좀 더 편하게 도와주는 vector-th-unbox 패키지도 있습니다. 성능이 매우 중요한 경우에는 이처럼 수고를 무릅쓰고 Unboxed vector 를 이용할 수 있습니다.
+
 한편, vector-algorithms 이라는 패키지가 있는데 Vector 에 대해 사용할 수 있는 알고리즘들을 가지고 있습니다. 주로 정렬에 관한 알고리즘들인데 다음 예제를 보겠습니다.
 ```haskell
 import Data.Vector.Algorithms.Merge (sort)
