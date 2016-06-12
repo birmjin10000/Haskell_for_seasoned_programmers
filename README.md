@@ -295,10 +295,10 @@ Data.Sequence, Data.Vector, Data.Array 는 모두 순차적인 자료구조입�
 - MultiParamTypeClasses
 - FunctionalDependencies
 - TypeSynonymInstances
+- RecordWildCards
 - ParallelListComp
 - TransformListComp
 - FlexibleContexts
-- RecordWildCards
 - RecursiveDo
 - NoMonomorphismRestriction
 - DeriveFunctor, DeriveFoldable, DeriveTraversable
@@ -307,11 +307,15 @@ Data.Sequence, Data.Vector, Data.Array 는 모두 순차적인 자료구조입�
 - DeriveDataTypeable
 - GeneralizedNewtypeDeriving
 
-먼저 BinaryLiterals 확장은 0b 또는 0B를 앞에 붙일 경우 그 다음에 나오는 숫자는 이진수를 뜻합니다. 즉 아래 코드에서 0b1101 은 이진수 1101 를 뜻합니다.
+GHC 컴파일러 확장은 꽤 종류가 많은데 그 중에는 여러 사람들이 대체로 사용을 권장하지 않는 것도 있습니다. 여기에서 소개하는 확장들도 꼭 사용을 권장하는 확장들만 있는것은 아닙니다. 그러나 소스 코드를 볼 때 비교적 자주 볼 수 있는 것들이기에 소개합니다.
+
+#####BinaryLiterals
+0b 또는 0B를 앞에 붙일 경우 그 다음에 나오는 숫자는 이진수를 뜻합니다. 즉 아래 코드에서 0b1101 은 이진수 1101 를 뜻합니다.
 ```haskell
 {-# LANGUAGE BinaryLiterals #-}
 a = 0b1101 -- 13
 ```
+#####OverloadedStrings
 다음 코드를 봅시다. 숫자의 type은 Int, Float, Double 등 여러가지인데, Haskell에서는 같은 숫자라도 주어진 type에 따라 type이 달리 정해질 수 있습니다. 숫자에 대해서는 다형성을 기본 지원해 주는 것이지요.
 
     > let a::Int; a = 2
@@ -339,7 +343,7 @@ b = "백두산"
 c::String
 c = "백두산"
 ```
-
+#####LambdaCase
 case .. of 구문은 LambdaCase 확장을 이용하면 좀 더 간결하게 작성할 수 있습니다.
 ```haskell
 {-# LANGUAGE LambdaCase #-}
@@ -348,6 +352,7 @@ sayHello names = map (\case
                    "둘리" -> "공룡아, 안녕!"
                    name -> name ++", 반가워요!") names
 ```
+#####BangPatterns
 Haskell 의 lazy evaluation 은 stack을 많이 사용하는 상황을 만들 수 있습니다. 이 때 사용할 수 있는 것이 Bang Patterns 입니다. 이를 사용하면 eager evaluation 을 하도록 만들 수 있습니다. 다음 코드처럼 변수 이름 앞에 느낌표를 붙이면 해당 변수는 thunk 에서 value 로 평가됩니다.
 ```haskell
 {-# LANGUAGE BangPatterns #-}
@@ -358,6 +363,7 @@ mean xs = s / l
   where (s,l) = foldl' step (0,0) xs
         step (!x,!y) a = (x+a,y+1)
 ```
+#####FlexibleInstances
 Haskell 에서 type class 의 인스턴스를 만들 때는 그 형식이 "type 이름 + type variable 목록" 이어야 합니다. 그래서 다음 처럼 이를 벗어난 인스턴스를 만들면 컴파일 에러가 납니다.
 ```haskell
 class Something a where
@@ -382,6 +388,7 @@ instance Vector (Double, Double) where
 
 d = distance (1,2) (8.2::Double, 9.9::Double) -- 10.688779163215974
 ```
+#####MultiParamTypeClasses
 지금까지는 type class 를 만들 때 type variable 을 하나만 사용했습니다. 그런데 다음과 같은 경우에는 type parameter 가 두 개가 필요합니다. container 를 뜻하는 type class 를 만들려면 다음과 같이 할 수 있을 겁니다. 그런데 이를 컴파일하면 에러가 납니다.
 ```haskell
 class Eq e => Collection c e where
@@ -400,7 +407,40 @@ instance Eq a => Collection [a] a where
 
 그런데 이렇게 정의했을 때 이 type class 정의에서 우리는 이미 알고 있지만 컴파일러는 모르는 정보가 생겼습니다. 그건 바로 Collection 의 type 이 해당 Collection 의 원소의 type 을 결정한다는 정보입니다. 무슨 말이냐하면 어떤 Collection 의 type 이 [a] 꼴이면 그것의 원소의 type 은 a 가 된다는 것입니다. 예를 하나 더 들어보면 Collection 의 type 이 Hashmap a 이면 그것의 원소의 type 은 a 가 되는 것이 자명합니다. 우리는 이 정보를 알고 있는데, 우리가 Collection type class 를 정의한 것에서는 이것에 대한
 정보가 없기 때문에 compiler 역시 이에 대한 정보를 알지 못합니다. 그 결과 필요 이상으로 일반화된 type 의 함수를 만들게 됩니다.
-
+#####FunctionalDependencies
+#####TypeSynonymInstances
+#####RecordWildCards
+RecordWildCards 확장의 주 목적은 코드를 좀 더 간결하게 보이도록 하는 것입니다. 다음과 같은 Record syntax 의 자료형이 있다고 합시다.
+```haskell
+data Worker = Worker
+   { workerName :: String
+   , workerPosition :: String
+   , workerFirstYear :: Int }
+```
+이를 Data.Aeson 모듈을 이용해서 JSON 형식으로 바꾸려고 합니다. 그러려면 Worker 자료형이 Data.Aeson 모듈의 FromJSON 과 ToJSON 의 instance 이어야 합니다. 그래서 다음처럼 코드를 작성합니다. ToJSON 의 인스턴스로 만드는 코드 예만 들겠습니다.
+```haskell
+instance ToJSON Worker where
+  toJSON w = object [ "name" .= workerName w
+                    , "position" .= workerPosition w
+                    , "first-year" .= workerFirstYear w ]
+```
+그런데 이 코드를 보면 w 변수가 군더더기처럼 모든 필드에 나오고 있습니다. 이러한 때에 RecordWildCards 확장을 쓰면 다음처럼 좀 더 깔끔하게 코드를 작성할 수 있습니다.
+```haskell
+{-# LANGUAGE RecordWildCards #-}
+instance ToJSON Worker where
+  toJSON Worker{..} = object [ "name" .= workerName
+                             , "position" .= workerPosition
+                             , "first-year" .= workerFirstYear ]
+```
+위 코드에서 Worker{..} 부분이 RecordWildCards 확장을 씀으로 인해 가능한 코드로서 Worker constructor 에 대한 pattern match 입니다. 이 부분에서 Worker 자료형의 모든 필드에 대한 binding이 이루어집니다. 이 예에서는 필드 갯수가 몇 개 되지 않아서 큰 차이는 없지만 많은 필드를 가진 자료형의 경우는 차이가 벌어집니다.
+#####ParallelListComp
+List comprehension 에서는 Cartesian product 가 나옵니다. 즉, [x+y|x<-[1..3],y<-[10..12]] 의 결과는 길이가 9인 List 가 됩니다. ParallelListComp 확장을 쓰면 각 원소들을 1:1 대응하여 연산을 수행합니다. ParallelListComp 확장의 경우 generator 간 구분은 쉼표가 아니라 수직선으로 합니다.
+```haskell
+{-# LANGUAGE ParallelListComp #-}
+[x+y|x<-[1..3] | y <-[10..12]] -- 결과는 [11,13,15]
+```
+이는 zipWith (+) [1..3] [10..12] 한 것과 같은 결과로서 ParallelListComp 를 이용한 표현식은 zipWith 를 이용하여 똑같이 작성할 수 있습니다. 그럼에도 ParallelListComp 확장을 쓰면 좋은 점은 코드를 좀 더 보기좋게 작성할 수 있다는 점에 있습니다.
+#####TransformListComp
 
 ## 두 번째 시간
 다음의 ghc 컴파일러 확장을 배웁시다.
