@@ -464,16 +464,36 @@ c = [(the p, m)| x<-[-1,1,-2], y<-[1,2,3], let m = x*y, let p = m > 0
 {-# LANGUAGE TransformListComp #-}
 [x*y|x<-[1,2,3], y<-[6,7], then take 3] -- [6,7,12]
 ```
-- *then* f *by* e 는 위와 비슷한데 함수 f 의 첫번째 인자로 쓰일 함수를 만들수 있게 합니다. 즉 함수 f 는 (a -> b)->[a]->[a] 꼴 입니다.
+- *then* f *by* e 는 위와 비슷한데 함수 f(함수 f 는 (a -> b)->[a]->[a] 꼴 입니다) 의 첫번째 인자로 쓰일 함수는 compiler 가 만들어서 전달합니다.
 ```haskell
 {-# LANGUAGE TransformListComp #-}
 import Data.List (sortOn)
 import GHC.Exts (sortWith)
-[(x*y,y)|x<-[1,2],y<-[6,7], then sortWith by y] -- [(6,6),(12,6),(7,7),(14,7)]
-sortOn snd [(x*y,y)|x<-[1,2],y<-[6,7]] -- [(6,6),(12,6),(7,7),(14,7)], sortOn 함수를 써서 같은 결과를 얻을 수 있습니다.
+
+sortWith (>5) [1,9,5,7,8,2] -- [1,5,2,9,7,8]
+[(x*y,y)|x<-[1,2],y<-[7,6,8], then sortWith by y] -- [(6,6),(12,6),(7,7),(14,7),(8,8),(16,8)]
+sortOn snd [(x*y,y)|x<-[1,2],y<-[7,6,8]] -- sortOn 함수를 써서 같은 결과를 얻을 수 있습니다.
 ```
-- *then group using* f 는
-- *then group by* e *using* f 는 
+- *then group by* e *using* f 는 함수 f 로 List comprehension 결과를 끼리끼리 묶는다. 이 함수 f 는 이전과 마찬가지로 (a -> b)->[a]->[a] 꼴이며 이것의 첫번째 인자는 컴파일러가 값 e 를 이용하여 만들어서 함수 f에 전달합니다.
+```haskell
+{-# LANGUAGE TransformListComp #-}
+import GHC.Exts (groupWith, the)
+
+the [1,1,1] -- 1
+groupWith (`mod` 3) [1,9,8,3,6,5,4,7] -- [[9,3,6],[1,4,7],[8,5]]
+[(the p, m)| x<-[-1,1,-2], y<-[1,2,3], let m = x*y, let p = m `mod` 3, then group by p using groupWith]
+-- [(0,[-3,3,-6]),(1,[-2,1,-2]),(2,[-1,2,-4])]
+```
+- *then group using* f 에서 함수 f 는 [a] -> [[a]] 꼴입니다.
+```haskell
+{-# LANGUAGE TransformListComp #-}
+[y|x<-[1..3], y<-"cat", then group using inits]
+-- ["","c","ca","cat","catc","catca","catcat","catcatc","catcatca","catcatcat"]
+inits [y|x<-[1..3], y<-"cat"] -- 같은 결과를 얻습니다.
+[y|x<-[1,2], y<-"hi", then group using inits]
+-- [([],""),([1],"h"),([1,1],"hi"),([1,1,2],"hih"),([1,1,2,2],"hihi")]
+map (foldr (\(num,ch) acc -> (num:fst acc, ch:snd acc)) ([],[])) $ inits [y|x<-[1,2], y<-"hi"] -- 같은 결과
+```
 #####FlexibleContexts
 #####RecursiveDo
 #####NoMonomorphismRestriction
