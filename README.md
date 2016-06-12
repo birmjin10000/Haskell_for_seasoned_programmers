@@ -432,7 +432,14 @@ instance ToJSON Worker where
                              , "position" .= workerPosition
                              , "first-year" .= workerFirstYear ]
 ```
-위 코드에서 Worker{..} 부분이 RecordWildCards 확장을 씀으로 인해 가능한 코드로서 Worker constructor 에 대한 pattern match 입니다. 이 부분에서 Worker 자료형의 모든 필드에 대한 binding이 이루어집니다. 이 예에서는 필드 갯수가 몇 개 되지 않아서 큰 차이는 없지만 많은 필드를 가진 자료형의 경우는 차이가 벌어집니다.
+위 코드에서 Worker{..} 부분이 RecordWildCards 확장을 씀으로 인해 가능한 코드로서 Worker constructor 에 대한 pattern match 입니다. 이 부분에서 Worker 자료형의 모든 필드에 대한 binding이 이루어집니다. 이 예에서는 필드 갯수가 몇 개 되지 않아서 큰 차이는 없지만 많은 필드를 가진 자료형의 경우는 차이가 벌어집니다. {..} 를 이용한 pattern match 는 Constructor 전체가 아닌 일부 필드에 대해서만도 할 수 있습니다. 다음 코드를 봅시다.
+```haskell
+{-# LANGUAGE RecordWildCards #-}
+data C = C {a :: Int, b :: Int, c :: Int, d :: Int}
+f (C {a = 1, ..}) = b + c + d
+f (C {..}) = b * c * d
+```
+이렇게 코드를 작성했을때 f (C 1 2 3 4) 의 결과는 9 가 되고 f (C 9 2 3 4) 의 결과는 24가 됩니다.
 #####ParallelListComp
 List comprehension 에서는 Cartesian product 가 나옵니다. 즉, [x+y|x<-[1..3],y<-[10..12]] 의 결과는 길이가 9인 List 가 됩니다. ParallelListComp 확장을 쓰면 각 원소들을 1:1 대응하여 연산을 수행합니다. ParallelListComp 확장의 경우 generator 간 구분은 쉼표가 아니라 수직선으로 합니다.
 ```haskell
@@ -441,7 +448,40 @@ List comprehension 에서는 Cartesian product 가 나옵니다. 즉, [x+y|x<-[1
 ```
 이는 zipWith (+) [1..3] [10..12] 한 것과 같은 결과로서 ParallelListComp 를 이용한 표현식은 zipWith 를 이용하여 똑같이 작성할 수 있습니다. 그럼에도 ParallelListComp 확장을 쓰면 좋은 점은 코드를 좀 더 보기좋게 작성할 수 있다는 점에 있습니다.
 #####TransformListComp
-
+TransformListComp 는 List Comprehension 의 기능을 더욱 확장한 것으로 볼 수 있는데 이 확장을 사용하면 마치 SQL query 를 작성하듯 grouping, sorting 기능들을 써서 List comprehension 을 작성할 수 있습니다.
+```haskell
+{-# LANGUAGE TransformListComp #-}
+import GHC.Exts (sortWith, groupWith, the)
+a = [x*y| x<-[-1,1,-2], y<-[1,2,3], then reverse] -- [-6,-4,-2,3,2,1,-3,-2,-1]
+b = [x*y| x<-[-1,1,-2], y<-[1,2,3], then sortWith by x] -- [-2,-4,-6,-1,-2,-3,1,2,3]
+c = [(the p, m)| x<-[-1,1,-2], y<-[1,2,3], let m = x*y, let p = m > 0
+                                         , then group by p using groupWith]
+-- [(False,[-1,-2,-3,-2,-4,-6]),(True,[1,2,3])]
+```
+이 코드에서 TransformListComp 확장을 씀으로 인해 사용할 수 있는 부분은 then f, then f by e, then group by e using f 구문입니다. 이처럼 TransformListComp 에서 사용할 수 있는 qualifier 구문의 뜻을 살펴봅시다.
+- *then* f 는 말 그대로 List 가 만들어진 후에 List에 함수 f 를 적용하여 새로운 List 를 만듭니다. 함수 f 는 [a] -> [a] 꼴입니다.
+```haskell
+{-# LANGUAGE TransformListComp #-}
+[x*y|x<-[1,2,3], y<-[6,7], then take 3] -- [6,7,12]
+```
+- *then* f *by* e 는 위와 비슷한데 함수 f 의 첫번째 인자로 쓰일 함수를 만들수 있게 합니다. 즉 함수 f 는 (a -> b)->[a]->[a] 꼴 입니다.
+```haskell
+{-# LANGUAGE TransformListComp #-}
+import Data.List (sortOn)
+import GHC.Exts (sortWith)
+[(x*y,y)|x<-[1,2],y<-[6,7], then sortWith by y] -- [(6,6),(12,6),(7,7),(14,7)]
+sortOn snd [(x*y,y)|x<-[1,2],y<-[6,7]] -- [(6,6),(12,6),(7,7),(14,7)], sortOn 함수를 써서 같은 결과를 얻을 수 있습니다.
+```
+- *then group using* f 는
+- *then group by* e *using* f 는 
+#####FlexibleContexts
+#####RecursiveDo
+#####NoMonomorphismRestriction
+#####DeriveFunctor, DeriveFoldable, DeriveTraversable
+#####DeriveGeneric
+#####DeriveAnyClass
+#####DeriveDataTypeable
+#####GeneralizedNewtypeDeriving
 ## 두 번째 시간
 다음의 ghc 컴파일러 확장을 배웁시다.
 - RankNTypes
