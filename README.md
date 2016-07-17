@@ -291,10 +291,9 @@ Data.Sequence, Data.Vector, Data.Array 는 모두 순차적인 자료구조입�
 - OverloadedStrings
 - LambdaCase
 - BangPatterns
-- FlexibleInstances
+- FlexibleInstances, TypeSynonymInstances
 - MultiParamTypeClasses
 - FunctionalDependencies
-- TypeSynonymInstances
 - RecordWildCards
 - ParallelListComp
 - TransformListComp
@@ -363,7 +362,7 @@ mean xs = s / l
   where (s,l) = foldl' step (0,0) xs
         step (!x,!y) a = (x+a,y+1)
 ```
-#####FlexibleInstances
+#####FlexibleInstances, TypeSynonymInstances
 Haskell 에서 type class 의 인스턴스를 만들 때는 그 형식이 "type 이름 + type variable 목록" 이어야 합니다. 그래서 다음 처럼 이를 벗어난 인스턴스를 만들면 컴파일 에러가 납니다.
 ```haskell
 class Something a where
@@ -388,9 +387,21 @@ instance Vector (Double, Double) where
 
 d = distance (1,2) (8.2::Double, 9.9::Double) -- 10.688779163215974
 ```
+한편, FlexibleInstances 확장의 사용은 또 다른 확장인 TypeSynonymInstances 확장을 내포하고 있습니다. 다음 코드를 봅시다.
+```haskell
+type Point a = (a,a)
+instance C (Point a) where
+```
+위 코드를 컴파일하면 다음과 같은 에러가 납니다. 
+Error 가 나는 이유는...
+```haskell
+{-# LANGUAGE TypeSynonymInstances #-}
+
+```
 #####MultiParamTypeClasses
 지금까지는 type class 를 만들 때 type variable 을 하나만 사용했습니다. 그런데 다음과 같은 경우에는 type parameter 가 두 개가 필요합니다. container 를 뜻하는 type class 를 만들려면 다음과 같이 할 수 있을 겁니다. 그런데 이를 컴파일하면 에러가 납니다.
 ```haskell
+{-# LANGUAGE FlexibleInstances #-}
 class Eq e => Collection c e where
   insert:: c -> e -> c
   member:: c -> e -> Bool
@@ -405,10 +416,30 @@ instance Eq a => Collection [a] a where
 
 이 때 MultiParamTypeClasses 확장을 이용하면 여러 개의 type variable 을 받을 수 있는 type class 를 정의할 수 있습니다. 직접 해보시기 바랍니다.
 
-그런데 이렇게 정의했을 때 이 type class 정의에서 우리는 이미 알고 있지만 컴파일러는 모르는 정보가 생겼습니다. 그건 바로 Collection 의 type 이 해당 Collection 의 원소의 type 을 결정한다는 정보입니다. 무슨 말이냐하면 어떤 Collection 의 type 이 [a] 꼴이면 그것의 원소의 type 은 a 가 된다는 것입니다. 예를 하나 더 들어보면 Collection 의 type 이 Hashmap a 이면 그것의 원소의 type 은 a 가 되는 것이 자명합니다. 우리는 이 정보를 알고 있는데, 우리가 Collection type class 를 정의한 것에서는 이것에 대한
-정보가 없기 때문에 compiler 역시 이에 대한 정보를 알지 못합니다. 그 결과 필요 이상으로 일반화된 type 의 함수를 만들게 됩니다.
+그런데 이렇게 정의했을 때 이 type class 정의에서 우리는 이미 알고 있지만 컴파일러는 모르는 정보가 생겼습니다. 그건 바로 Collection 의 type 이 해당 Collection 의 원소의 type 을 결정한다는 정보입니다. 무슨 말이냐하면 어떤 Collection 의 type 이 [a] 꼴이면 그것의 원소의 type 은 a 가 된다는 것입니다. 예를 하나 더 들어보면 Collection 의 type 이 Hashmap a 이면 그것의 원소의 type 은 a 가 되는 것이 자명합니다. 우리는 이 정보를 알고 있지만, 우리가 Collection type class 를 정의한 코드에서는 이것에 대한 정보가 없기 때문에 compiler 는 이에 대한 정보를 알지 못한 상황이 됩니다. 그 결과 Compiler 는 필요 이상으로 일반화된 type 의 함수를 추론하게 됩니다. 예를 들어 Collection 에 원소를 두 개 추가하는 다음과 같은 함수를 정의했다고 합시다.
+```haskell
+ins2 xs a b = insert (insert xs a) b
+```
+이 함수의 type 을 컴파일러가 어떻게 추론했는지 확인해보면 다음과 같은 꼴로 추론함을 확인할 수 있습니다.
+
+    > :t ins2
+    ins2::(Collection c e1, Collection c e) => c -> e1 -> e -> c
+
+이는 우리가 원하는 결과가 아닙니다. e1 과 e 가 같은 type 이라는 것을 compiler 가 모르기 때문에 이처럼 지나치게 일반화된 type 으로 추론을 했습니다. 이 같은 문제를 해결할 수 있는 것이 다음의 Functional Dependency 확장입니다.
 #####FunctionalDependencies
-#####TypeSynonymInstances
+아래 코드처럼 Functional Dependency 확장을 이용하면 ins2 함수의 type 을 컴파일러가 어떻게 추론하는지 봅시다.
+```haskell
+{-# LANGUAGE FunctionalDependencies #-}
+class Eq e => Collection c e | c -> e where
+  insert:: c -> e -> c
+  member:: c -> e -> Bool
+```
+위 코드에서 수직선 뒷 부분의 c -> e 가 뜻하는 바는 c 가 e 의 type 을 결정한다는 뜻입니다. 이제 ins2 의 type 을 확인해 보면 다음처럼 원하는 결과를 얻을 수 있습니다.
+
+    > :t ins2
+    ins2::Collection c e => c -> e -> e -> c
+
+
 #####RecordWildCards
 RecordWildCards 확장의 주 목적은 코드를 좀 더 간결하게 보이도록 하는 것입니다. 다음과 같은 Record syntax 의 자료형이 있다고 합시다.
 ```haskell
@@ -474,7 +505,7 @@ sortWith (>5) [1,9,5,7,8,2] -- [1,5,2,9,7,8]
 [(x*y,y)|x<-[1,2],y<-[7,6,8], then sortWith by y] -- [(6,6),(12,6),(7,7),(14,7),(8,8),(16,8)]
 sortOn snd [(x*y,y)|x<-[1,2],y<-[7,6,8]] -- sortOn 함수를 써서 같은 결과를 얻을 수 있습니다.
 ```
-- *then group by* e *using* f 는 함수 f 로 List comprehension 결과를 끼리끼리 묶는다. 이 함수 f 는 이전과 마찬가지로 (a -> b)->[a]->[a] 꼴이며 이것의 첫번째 인자는 컴파일러가 값 e 를 이용하여 만들어서 함수 f에 전달합니다.
+- *then group by* e *using* f 는 함수 f 로 List comprehension 결과를 끼리끼리 묶습는다. 이 함수 f 는 이전과 마찬가지로 (a -> b)->[a]->[a] 꼴이며 이것의 첫번째 인자는 컴파일러가 값 e 를 이용하여 만들어서 함수 f에 전달합니다.
 ```haskell
 {-# LANGUAGE TransformListComp #-}
 import GHC.Exts (groupWith, the)
@@ -490,18 +521,37 @@ groupWith (`mod` 3) [1,9,8,3,6,5,4,7] -- [[9,3,6],[1,4,7],[8,5]]
 [y|x<-[1..3], y<-"cat", then group using inits]
 -- ["","c","ca","cat","catc","catca","catcat","catcatc","catcatca","catcatcat"]
 inits [y|x<-[1..3], y<-"cat"] -- 같은 결과를 얻습니다.
-[y|x<-[1,2], y<-"hi", then group using inits]
+[(x,y)|x<-[1,2], y<-"hi", then group using inits]
 -- [([],""),([1],"h"),([1,1],"hi"),([1,1,2],"hih"),([1,1,2,2],"hihi")]
-map (foldr (\(num,ch) acc -> (num:fst acc, ch:snd acc)) ([],[])) $ inits [y|x<-[1,2], y<-"hi"] -- 같은 결과
+map (foldr (\(num,ch) acc -> (num:fst acc, ch:snd acc)) ([],[])) $ inits [(x,y)|x<-[1,2], y<-"hi"] -- 같은 결과
 ```
 #####FlexibleContexts
+
 #####RecursiveDo
+
 #####NoMonomorphismRestriction
+
 #####DeriveFunctor, DeriveFoldable, DeriveTraversable
+다음처럼 Tree 를 정의하고 이에 대해서 fmap 함수를 적용하려면 Tree 가 Fuctor 이어야 합니다. 즉, 직접 Tree 를 Functor 로 만들어주어야 하는데, 이 때 DeriveFunctor 확장을 쓰면 컴파일러가 이 작업을 대신 해 줍니다. 마찬가지로 fold 함수를 적용하려면 Tree 가 Foldable 이어야 하는데 이 때도 역시 DeriveFoldable 확장을 쓰면 컴파일러가 알아서 Tree 를 Foldable 로 만들어 줍니다. DeriveTraversable 도 마찬가지로 함수 traverse 를 적용할 수 있도록 해 줍니다.
+```haskell
+{-# LANGUAGE DeriveFunctor, DeriveFoldable, DeriveTraversable #-}
+data Tree a = Empty | Fork (Tree a) a (Tree a) deriving (Show, Functor, Foldable, Traversable)
+myT = Fork (Fork Empty "Daenerys" Empty) "Jon" (Fork Empty "Arya" (Fork Empty "Sansa" Empty))
+fmap length myT -- Fork (Fork Empty 8 Empty) 3 (Fork Empty 4 (Fork Empty 5 Empty))
+foldr (:) [] myT -- ["Daenerys","Jon","Arya","Sansa"]
+traverse (\name -> putStrLn ("What's "++name++"'s occupation?") *> getLine) myT
+-- What's Daenerys's occupation?
+-- ...
+```
+
 #####DeriveGeneric
+
 #####DeriveAnyClass
+
 #####DeriveDataTypeable
+
 #####GeneralizedNewtypeDeriving
+
 ## 두 번째 시간
 다음의 ghc 컴파일러 확장을 배웁시다.
 - RankNTypes
