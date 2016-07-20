@@ -143,7 +143,7 @@ myV2 = U.replicateM 20 $ do -- 여기서 replicateM 은 monadic action 을 20번
          i <- randomRIO(0,9)
          return i
 ```
-위 코드를 ghci 에서 load 한 다음 Vector 의 내용들을 다음처럼 찍어볼 수 있습니다.
+위 코드를 GHCi 에서 load 한 다음 Vector 의 내용들을 다음처럼 찍어볼 수 있습니다.
 
     > print myV
     "aaaaaaaaaa"
@@ -530,6 +530,29 @@ map (foldr (\(num,ch) acc -> (num:fst acc, ch:snd acc)) ([],[])) $ inits [(x,y)|
 #####RecursiveDo
 
 #####NoMonomorphismRestriction
+먼저 MonomorphismRestriction 이 무엇인지 알아봅시다. 일단 Monomorphism 이란 Polymorphism 과 반대 개념입니다. 다음 코드를 파일로 저장한 다음 GHCi 에서 load 해 봅시다.
+```haskell
+-- Mono.hs
+plus = (+)
+```
+
+    > :l Mono.hs
+    [1 of 1] Compiling Main    ( Mono.hs, interpreted )
+    Ok, modules loaded: Main.
+    > :t plus
+    plus :: Integer -> Integer -> Integer
+
+위에서 보듯 plus 함수의 type 은 (+) 연산자의 type 인 Num a => a -> a -> a 와는 달리 polymorphic 하지 않습니다. 그렇기에 plus 1.1 2 같은 코드는 error 가 납니다. 이렇게 되는 이유는 ghc 컴파일러는 MonomorphismRestriction 이 기본 설정이기 때문입니다. 반면 GHCi 에서는 NoMonomorphismRestriction 이 기본 설정이어서 똑같이 plus = (+) 를 정의해도 이것의 type 이 (+) 의 type 과 같습니다.
+
+    > let plus = (+)
+    > :t plus
+    plus :: Num a => a -> a -> a
+
+NoMonomorphismRestriction 이 뜻하는 바는 가능한 한 최대로 polymorphic type 으로 추론하라는 것이고 MonomorphismRestriction 은 그 반대의 뜻입니다. 따라서 ghc 컴파일에서도 최대한 polymorphic type 으로 type inference 가 되도록 하려면 NoMonomorphismRestriction 을 사용하면 됩니다. 다음처럼
+```haskell
+{-# LANGUAGE NoMonomorphismRestriction #-}
+plus = (+)
+```
 
 #####DeriveFunctor, DeriveFoldable, DeriveTraversable
 다음처럼 Tree 를 정의하고 이에 대해서 fmap 함수를 적용하려면 Tree 가 Fuctor 이어야 합니다. 즉, 직접 Tree 를 Functor 로 만들어주어야 하는데, 이 때 DeriveFunctor 확장을 쓰면 컴파일러가 이 작업을 대신 해 줍니다. 마찬가지로 fold 함수를 적용하려면 Tree 가 Foldable 이어야 하는데 이 때도 역시 DeriveFoldable 확장을 쓰면 컴파일러가 알아서 Tree 를 Foldable 로 만들어 줍니다. DeriveTraversable 도 마찬가지로 함수 traverse 를 적용할 수 있도록 해 줍니다.
