@@ -301,8 +301,7 @@ Data.Sequence, Data.Vector, Data.Array 는 모두 순차적인 자료구조입�
 - RecursiveDo
 - NoMonomorphismRestriction
 - DeriveFunctor, DeriveFoldable, DeriveTraversable
-- DeriveGeneric
-- DeriveAnyClass
+- DeriveGeneric, DeriveAnyClass
 - DeriveDataTypeable
 - GeneralizedNewtypeDeriving
 
@@ -567,13 +566,52 @@ traverse (\name -> putStrLn ("What's "++name++"'s occupation?") *> getLine) myT
 -- ...
 ```
 
-#####DeriveGeneric
+#####DeriveGeneric, DeriveAnyClass
+위에서 사용한 DeriveFunctor, DeriveFoldable, DeriveTraversable 은 모둔 base 라이브러리에 속한 Functor, Foldable, Traversable 의 Instance 를 손쉽게 만들수 있게 해주었습니다. 그렇다면 base 라이브러리에 속하지 않은 type class 의 Instance 를 이와 같은 방식으로 손쉽게 만들 수 있는 확장은 없을까요? DeriveGeneric 확장이 바로 이 같은 상황에서 쓸 수 있는 확장입니다. Data.Aeson 모듈을 이용하여 원하는 데이터를 JSON 형식으로 바꾸는 코드를 작성해보겠습니다.
+```haskell
+-- Jedi.hs
+{-# LANGUAGE DeriveGeneric #-}
+import Data.Aeson
+import Data.Aeson.Types
+import GHC.Generics
 
-#####DeriveAnyClass
+data Jedi = Jedi{name::String, age::Int, greeting::String} deriving (Show, Generic)
+instance FromJSON Jedi
+instance ToJSON Jedi
+
+jediAsJSON = encode (Jedi{age=900, name="Yoda", greeting="May the Lambda be with you."})
+decodedJedi:: Maybe Jedi
+decodedJedi = decode jediAsJSON::Maybe Jedi
+```
+
+    > :l Jedi.hs
+    Ok, modules loaded: Main
+    > print jediAsJSON
+    "{\"age\":900,\"name\":\"Yoda\"}"
+    > print decodedJedi
+    Just (Jedi {name = "Yoda", age = 900})
+
+한편, DeriveAnyClass 확장을 함께 쓰면 더 코드를 간결하게 작성할 수 있다. 위 코드에서 instance 선언부가 필요없게 된다.
+
+```haskell
+{-# LANGUAGE DeriveGeneric, DeriveAnyClass #-}
+...
+data Jedi = Jedi{name::String, age::Int, greeting::String} deriving (Show, Generic, FromJSON, ToJSON)
+
+jediAsJSON = encode (Jedi{age=900, name="Yoda", greeting="May the Lambda be with you."})
+...
+```
 
 #####DeriveDataTypeable
 
+
 #####GeneralizedNewtypeDeriving
+newtype 을 써서 만든 자료형은 deriving 방식을 사용하여 특정 type classe 의 instance 로 만들 수 없는데, GeneralizedNewtypeDeriving 확장은 그걸 할 수 있게 해준다.
+```haskell
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+newtype Dollars = Dollars Int deriving (Eq, Show, Num)
+a = (Dollars 8) + (Dollars 9) -- Dollars 17
+```
 
 ## 두 번째 시간
 다음의 ghc 컴파일러 확장을 배웁시다.
@@ -588,6 +626,15 @@ traverse (\name -> putStrLn ("What's "++name++"'s occupation?") *> getLine) myT
 - DataKinds
 - PolyKinds
 - KindSignatures
+
+#####RankNTypes
+
+
+#####GADTs(Generalized Algebraic Data Types)
+
+#####ScopedTypeVariables
+
+#####LiberalTypeSynonyms
 
 ## 세 번째 시간
 - Standalone deriving
