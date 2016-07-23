@@ -13,7 +13,7 @@ Monad Transformers, Arrow, GADTs, Type Families, RankNTypes, Applicative Functor
 - ViewPatterns
 - Pattern Synonyms
 
-Haskell로 프로젝트를 할 때 cabal 을 통해 패키지를 설치하면 의존성 문제를 해결하는데 많은 시간이 쓰일 때가 있습니다. 이런 문제를 해결하고자 [stack](https://github.com/commercialhaskell/stack)과 같은 도구가 있습니다. Mac OS X의 경우 homebrew 로 설치하는 것이 가장 간편합니다. 설치 후에 다음과 같이 my-project 라는 이름으로 프로젝트를 하나 만들고 빌드 및 실행해 봅니다.
+Haskell로 프로젝트를 할 때 cabal 을 통해 패키지를 설치하면 의존성 문제를 해결하는데 많은 시간을 허비할 수 있습니다. 이런 문제를 해결하고자 [stack](https://github.com/commercialhaskell/stack)과 같은 도구가 있습니다. Mac OS X의 경우 homebrew 로 설치하는 것이 가장 간편합니다. 설치 후에 다음과 같이 my-project 라는 이름으로 프로젝트를 하나 만들고 빌드 및 실행해 봅니다.
 
     stack new my-project new-template
     stack setup
@@ -679,6 +679,18 @@ applyToTuple f (x,y) = (f x, f y)
 
     > applyToTuple length ("hello", [1,2,3])
     (5,3)
+
+RankNTypes 확장이 필요한 이유는 곰곰히 생각해 보면 이는 Polymorphic function, 특히 Haskell 에서 구현하고 있는 Parametric polymorphism 에 대한 이해와 연결됩니다. 앞서 예를 들었던 length 함수의 type "[a] -> Int" 가 뜻하는 바는 [Char] -> Int 꼴이나 [Double] -> Int, [String] -> Int 등의 여러 함수의 집합으로 볼 수 있다는 것입니다. 즉, 실제로 length 함수가 사용될 때 length 함수의 type 이 결정된다는 것입니다. 다음 코드를 봅시다.
+
+```haskell
+a = [1,2,3]::[Integer]
+length a -- 여기서의 length 함수의 type 은 [Integer] -> Int 입니다.
+b = [1,2,3]::[Double]
+length b -- 여기서의 length 함수의 type 은 [Double] -> Int 입니다.
+```
+즉, Polymorphic function 의 type 은 해당 함수가 쓰이는 시점에 정해지는(instantiated) 것이지요. 이를 applyToTuple 예제에 대해서 생각해 보면 applyToTuple 함수의 첫번째 인자인 함수 f 의 type 은 "hello" 에 대해 적용될 때는 [Char]->Int 로 정해지고 [1,2,3] 에 대해 적용될 때는 Num a => [a] -> Int 로 정해집니다. 그렇기 때문에 forall 예약어의 위치가 중요한 것입니다.
+
+이처럼 parametric polymorphism 에서는 type variable 이 함수의 동작을 크게 규정합니다. 이를 Parametricity 라고 부르는데 예를 들어 f::[a] -> [a] 꼴인 함수 f 가 있을 때 이 함수가 하는 일을 추측해봅시다. 언뜻 매우 다양한 함수가 이 함수꼴 집합에 포함될 것이라고 생각할 수 있으나 사실은 정반대입니다. 모든 type 에 대하여 고려를 해야 하기 때문에 [a] -> [a] 꼴 함수집합에 속할 수 있는 함수는 매우 제한적입니다. 예를 들어 이 함수가 각 인자를 1 만큼 증가시키는 함수라고 추측해봅시다. 가능할까요? type variable 'a' 가 Int type 이면 가능합니다. 그런데 Bool type 이라면? 불가능한 일입니다. 따라서 [a] -> [a] 꼴 함수가 할 수 있는 일은 인자들의 순서를 재배열하거나, 인자들의 갯수를 늘리거나 또는 줄이는 일 정도입니다. 그 외에 혹시라도 뭐가 또 있을 수 있을까요?
 
 #####GADTs(Generalized Algebraic Data Types)
 다음과 같은 data type 을 정의한다고 해 봅시다.
