@@ -567,7 +567,7 @@ traverse (\name -> putStrLn ("What's "++name++"'s occupation?") *> getLine) myT
 ```
 
 #####DeriveGeneric, DeriveAnyClass
-위에서 사용한 DeriveFunctor, DeriveFoldable, DeriveTraversable 은 모둔 base 라이브러리에 속한 Functor, Foldable, Traversable 의 Instance 를 손쉽게 만들수 있게 해주었습니다. 그렇다면 base 라이브러리에 속하지 않은 type class 의 Instance 를 이와 같은 방식으로 손쉽게 만들 수 있는 확장은 없을까요? DeriveGeneric 확장이 바로 이 같은 상황에서 쓸 수 있는 확장입니다. Data.Aeson 모듈을 이용하여 원하는 데이터를 JSON 형식으로 바꾸는 코드를 작성해보겠습니다.
+위에서 사용한 DeriveFunctor, DeriveFoldable, DeriveTraversable 은 모두 base 라이브러리에 속한 Functor, Foldable, Traversable 의 Instance 를 손쉽게 만들수 있게 해주었습니다. 그렇다면 base 라이브러리에 속하지 않은 type class 의 Instance 를 이와 같은 방식으로 손쉽게 만들 수 있는 확장은 없을까요? DeriveGeneric 확장이 바로 이 같은 상황에서 쓸 수 있는 확장입니다. Data.Aeson 모듈을 이용하여 원하는 데이터를 JSON 형식으로 바꾸는 코드를 작성해보겠습니다.
 ```haskell
 -- Jedi.hs
 {-# LANGUAGE DeriveGeneric #-}
@@ -606,7 +606,7 @@ jediAsJSON = encode (Jedi{age=900, name="Yoda", greeting="May the Lambda be with
 
 
 #####GeneralizedNewtypeDeriving
-newtype 을 써서 만든 자료형은 deriving 방식을 사용하여 특정 type classe 의 instance 로 만들 수 없는데, GeneralizedNewtypeDeriving 확장은 그걸 할 수 있게 해준다.
+newtype 을 써서 만든 자료형은 deriving 방식을 사용하여 특정 type classe 의 instance 로 만들 수 없는데, GeneralizedNewtypeDeriving 확장은 그걸 할 수 있게 해줍니다.
 ```haskell
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 newtype Dollars = Dollars Int deriving (Eq, Show, Num)
@@ -620,7 +620,7 @@ a = (Dollars 8) + (Dollars 9) -- Dollars 17
 - ScopedTypeVariables
 - LiberalTypeSynonyms
 - ExistentialQuantification
-- TypeFamillies
+- TypeFamilies
 - DefaultSignatures
 - ConstraintKinds
 - DataKinds
@@ -628,13 +628,100 @@ a = (Dollars 8) + (Dollars 9) -- Dollars 17
 - KindSignatures
 
 #####RankNTypes
+Haskell 에서의 type 은 기본적으로 Rank-1 type 입니다. 그렇다면 Rank-2 type 이란 것도 있는가? 있습니다. 이 Rank-N type 에 대해 알려면 우선 forall 예약어에 대해 알아야 합니다. 많이 쓰는 함수 length 의 typ 은 다음과 같습니다.
+```haskell
+length:: [a] -> Int
+```
+그런데 length 함수의 type 에서 사실 생략된 부분이 있습니다. 그 생략된 부분을 드러내보면 length 함수의 type 은 다음과 같습니다.
+```haskell
+length:: forall a.[a] -> Int
+```
+Haskell 에서 polymorphic 함수의 type 에는 이처럼 forall 이 묵시적으로 붙어 있습니다. forall 이 뜻하는 바는 a 의 type 이 무엇이건간에 [a] -> Int 꼴 함수 length 가 성립한다는 것입니다. 즉, a 가 Int 여도 되고 Char 이어도 되고 Bool 이어도 되고 등등. 참고로 이것은 Predicate Logic 의 Universal Quantification 와 같은 것입니다. 예) 모든 사람은 죽는다: ∀{man(x) -> Die(x)}
+Polymorphic type system 에서 Rank 라 함은 이 forall 이 type 표기의 어느 부분에 나올지에 관한 것입니다. Rank-1 type system 이라면 forall 은 type 표기의 가장 바깥쪽에만 올 수 있습니다. 위의 length 함수의 type 처럼. Rank-2 type system 이라면 forall 이 type 표기의 한 단계 안쪽까지 올 수 있습니다. 다음은 Rank-2 type 과 Rank-3 type 의 예입니다.
+```haskell
+{-# LANGUAGE RankNTypes #-}
+someInt:: (forall a.a->a) -> Int -- Rank-2 type
+someInt id' = id' 3
 
+someOtherInt::((forall a.a->a)->Int) -> Int -- Rank-3 type
+someOtherInt someInt' = someInt' id + someInt' id
+```
+Rank-1 type 인 경우 당연히 가장 바깥쪽에 forall 이 존재하는 것이 자명하기 때문에 forall 을 쓰는 것이 생략되어 있습니다. 하지만 Rank-2 type 같은 경우 전체 type 의 일부분에 Rank-1 type 함수가 포함된 형태(즉, 다른 함수를 인자로 받는 함수인데 인자로 받는 함수가 Rank-1 type 함수)이기 때문에 이것을 나타내기 위해서는 forall 예약어를 명시적으로 써야만 합니다.
+
+이제 RankNTypes 함수를 만들어보겠습니다. 다음과 같이 동작하는 함수를 만들려고 합니다.
+```haskell
+applyToTuple f (x,y) = (f x, f y)
+-- applyToTuple length ("hello",[1,2,3]) 의 결과는 (5,3)
+```
+코드를 이렇게 작성하고 applyToTuple length ("hello",[1,2,3]) 을 실행하면 다음과 같은 에러가 납니다.
+
+    <interactive>:2:31: error:
+    • No instance for (Num Char) arising from the literal ‘1’
+    • In the expression: 1
+      In the expression: [1, 2, 3]
+      In the second argument of ‘applyToTuple’, namely
+        ‘("hello", [1, 2, 3])’
+
+위 에러가 뜻하는 바는 Num 이 Char 의 Instance 가 아니라는 것입니다. 왜 이런 에러가 나는지 알아보기 위해 Haskell 컴파일러가 applyToTuple 함수의 type 을 어떻게 추론하는지 확인해봅시다.
+
+    > :t applyToTuple
+    applyToTuple :: (t1 -> t) -> (t1, t1) -> (t, t)
+
+applyToTuple 함수는 두번째 인자로 같은 type 을 요소로 갖는 tuple 을 받게 되어 있습니다. 따라서 위 예시에서는 tuple 의 첫번째 요소의 type 이 Char 였기에 두번째 요소 역시 type 이 Char 로 설정되었는데 막상 Num 이 들어왔기에 에러가 난 것입니다. 즉, applyToTuple 의 함수의 type 이 우리가 기대하는 바와는 다르게 추론이 되었습니다. 그렇다면 applyToTuple 함수의 type 을 명시적으로 applyToTuple::([a]->Int)->([b],[c])->(Int,Int) 로 주면 어떻게 될까요? 쉽게 예상할 수 있듯이 컴파일할 때 type error 가 납니다. type 'b' 와 type 'a' 가 서로 맞지 않고, type 'c' 와 type 'a' 역시 서로 맞지 않다는 error 가 납니다. 직접 해보시기 바랍니다.
+
+applyToTuple 함수에 우리가 원하는 대로 type 을 주기 위해서는 RankNTypes 확장을 써야 합니다. 다음처럼 말입니다.
+```haskell
+{-# LANGUAGE RankNTypes #-}
+applyToTuple:: (forall a.[a]->Int) -> ([b],[c]) -> (Int, Int)
+applyToTuple f (x,y) = (f x, f y)
+```
+이제 이 함수를 실행하면 바라던 방식대로 동작하는 것을 볼 수 있습니다.
+
+    > applyToTuple length ("hello", [1,2,3])
+    (5,3)
 
 #####GADTs(Generalized Algebraic Data Types)
+다음과 같은 data type 을 정의한다고 해 봅시다.
+```haskell
+data Expr = I Int
+          | B Bool
+          | Add Expr Expr
+          | Mul Expr Expr
+          | Eq Expr Expr
+```
+이 data type 은 다음과 같은 expression 으로 표현이 가능합니다.
+
+    (I 5 `Add` I 1) `Eq` I 7 :: Expr
+
+그런데 다음도 역시 유효한 expression 입니다.
+
+    B True `Add` I 5 :: Expr
+
+이러한 상황을 방지하고 싶으면 어찌하면 될까요? 다시 말해 type safety 를 확보하고 싶다면? 이때 다음처럼 dummy type variable(또는 phantom)을 이용합니다. 아래 코드에서 a 가 phantom 입니다.
+```haskell
+data Expr a where
+      I:: Int -> Expr Int
+      B:: Bool -> Expr Bool
+      Add:: Expr Int -> Expr Int -> Expr Int
+      Mul:: Expr Int -> Expr Int -> Expr Int
+      Eq:: Expr Int -> Expr Int -> Expr Bool
+```
+이렇게 하면 type safety 를 확보할 수 있습니다. 그리고 다음과 같은 smart constructor 를 만들 수 있습니다.
+```haskell
+add:: Expr Int -> Expr Int -> Expr Int
+add = Add
+eq:: Expr Int -> Expr Int -> Expr Bool
+eq = Eq
+```
+GADTs extension 을 통해 이러한 것이 가능합니다.
 
 #####ScopedTypeVariables
 
 #####LiberalTypeSynonyms
+
+#####ExistentialQuantification
+
+#####TypeFamilies
 
 ## 세 번째 시간
 - Standalone deriving
