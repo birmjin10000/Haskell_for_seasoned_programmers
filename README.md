@@ -291,6 +291,7 @@ Data.Sequence, Data.Vector, Data.Array 는 모두 순차적인 자료구조입�
 - OverloadedStrings
 - LambdaCase
 - BangPatterns
+- TupleSections
 - FlexibleInstances, TypeSynonymInstances
 - MultiParamTypeClasses
 - FunctionalDependencies
@@ -361,6 +362,16 @@ mean xs = s / l
   where (s,l) = foldl' step (0,0) xs
         step (!x,!y) a = (x+a,y+1)
 ```
+
+#####TupleSections
+Tuple 을 만들 때 일부 요소를 partially applied 한 꼴을 이용할 수 있게 합니다. 다음 코드를 봅시다.
+```haskell
+{-# LANGUAGE TupleSections #-}
+(1,) 2 -- (1,2)
+(,3,) 1 5 -- (1,3,5)
+map ("yo!",) [1,2,3] -- [("yo!",1),("yo!",2),("yo!",3)]
+```
+
 #####FlexibleInstances, TypeSynonymInstances
 Haskell 에서 type class 의 인스턴스를 만들 때는 그 형식이 "type 이름 + type variable 목록" 이어야 합니다. 그래서 다음 처럼 이를 벗어난 인스턴스를 만들면 컴파일 에러가 납니다.
 ```haskell
@@ -540,6 +551,12 @@ plus = (+)
     Ok, modules loaded: Main.
     > :t plus
     plus :: Integer -> Integer -> Integer
+    > plus 1.1 2
+
+    <interactive>:3:6: error:
+        • No instance for (Fractional Integer)
+            arising from the literal ‘1.1’
+        ...
 
 위에서 보듯 plus 함수의 type 은 (+) 연산자의 type 인 Num a => a -> a -> a 와는 달리 polymorphic 하지 않습니다. 그렇기에 plus 1.1 2 같은 코드는 error 가 납니다. 이렇게 되는 이유는 ghc 컴파일러는 MonomorphismRestriction 이 기본 설정이기 때문입니다. 반면 GHCi 에서는 NoMonomorphismRestriction 이 기본 설정이어서 똑같이 plus = (+) 를 정의해도 이것의 type 이 (+) 의 type 과 같습니다.
 
@@ -591,7 +608,7 @@ decodedJedi = decode jediAsJSON::Maybe Jedi
     > print decodedJedi
     Just (Jedi {name = "Yoda", age = 900})
 
-한편, DeriveAnyClass 확장을 함께 쓰면 더 코드를 간결하게 작성할 수 있다. 위 코드에서 instance 선언부가 필요없게 된다.
+한편, DeriveAnyClass 확장을 함께 쓰면 더 코드를 간결하게 작성할 수 있습니다. 위 코드에서 instance 선언부가 필요없습니다.
 
 ```haskell
 {-# LANGUAGE DeriveGeneric, DeriveAnyClass #-}
@@ -616,16 +633,16 @@ a = (Dollars 8) + (Dollars 9) -- Dollars 17
 ## 두 번째 시간
 다음의 ghc 컴파일러 확장을 배웁시다.
 - RankNTypes
+- KindSignatures, PolyKinds, DataKinds
+- TypeInType
+- TypeOperators
 - GADTs(Generalised Algebraic Data Types)
 - ScopedTypeVariables
 - LiberalTypeSynonyms
 - ExistentialQuantification
-- TypeFamilies
+- TypeFamilies, TypeFamilyDependencies
 - DefaultSignatures
 - ConstraintKinds
-- DataKinds
-- PolyKinds
-- KindSignatures
 
 #####RankNTypes
 Haskell 에서의 type 은 기본적으로 Rank-1 type 입니다. 그렇다면 Rank-2 type 이란 것도 있는가? 있습니다. 이 Rank-N type 에 대해 알려면 우선 forall 예약어에 대해 알아야 합니다. 많이 쓰는 함수 length 의 typ 은 다음과 같습니다.
@@ -692,6 +709,10 @@ length b -- 여기서의 length 함수의 type 은 [Double] -> Int 입니다.
 
 이처럼 parametric polymorphism 에서는 type variable 이 함수의 동작을 크게 규정합니다. 이를 Parametricity 라고 부르는데 예를 들어 f::[a] -> [a] 꼴인 함수 f 가 있을 때 이 함수가 하는 일을 추측해봅시다. 언뜻 매우 다양한 함수가 이 함수꼴 집합에 포함될 것이라고 생각할 수 있으나 사실은 정반대입니다. 모든 type 에 대하여 고려를 해야 하기 때문에 [a] -> [a] 꼴 함수집합에 속할 수 있는 함수는 매우 제한적입니다. 예를 들어 이 함수가 각 인자를 1 만큼 증가시키는 함수라고 추측해봅시다. 가능할까요? type variable 'a' 가 Int type 이면 가능합니다. 그런데 Bool type 이라면? 불가능한 일입니다. 따라서 [a] -> [a] 꼴 함수가 할 수 있는 일은 인자들의 순서를 재배열하거나, 인자들의 갯수를 늘리거나 또는 줄이는 일 정도입니다. 그 외에 혹시라도 뭐가 또 있을 수 있을까요?
 
+#####DataKinds
+
+#####TypeOperators
+
 #####GADTs(Generalized Algebraic Data Types)
 다음과 같은 data type 을 정의한다고 해 봅시다.
 ```haskell
@@ -709,7 +730,45 @@ data Expr = I Int
 
     B True `Add` I 5 :: Expr
 
-이러한 상황을 방지하고 싶으면 어찌하면 될까요? 다시 말해 type safety 를 확보하고 싶다면? 이때 다음처럼 dummy type variable(또는 phantom)을 이용합니다. 아래 코드에서 a 가 phantom 입니다.
+이러한 상황을 방지하고 싶으면 어찌하면 될까요? 다시 말해 type safety 를 확보하고 싶다면? 그래서 등장하는 것이 GADT 확장입니다. 우선 GADT 의 문법을 살펴보겠습니다. Generalised Abstract Data Type 의 선언은 보통의 data type 선언과는 다른 형식의 문법을 사용합니다. 다음 코드를 봅시다.
+```haskell
+{-# LANGUAGE GADTs #-}
+-- data Maybe' a = Nothing' | Just' a
+data Maybe' a where
+  Nothing':: Maybe' a
+  Just':: a -> Maybe' a
+
+-- data List a = Nil | Cons a (List a)
+data List a where
+  Nil:: List a
+  Cons:: a -> List a -> List a
+
+-- data Bool' = True' | False'
+data Bool' where
+  True':: Bool'
+  False':: Bool'
+```
+data type 선언을 마치 type class 선언을 하는 것처럼 합니다. 물론 위의 data type 들은 GADT 는 아닙니다. 단지 GADT 선언 문법을 사용하고 있을 뿐입니다. 위의 data type 들은 선언문법이 다를뿐 기존 방식으로 선언했을 때의 data type 과 완전히 같습니다.
+
+이제 실제로 GADT 선언 문법을 사용했을 때 추가로 더 할 수 있는 일이 무엇인지 알아봅시다. 다음 코드를 봅시다.
+```haskell
+{-# LANGUAGE GADTs #-}
+data G a where
+  MkGInt:: G Int
+  MkGBool:: G Bool
+```
+G a 라는 자료형의 Constructor 두 개가 서로 다른 type 입니다! MkGInt 의 type 은 G Int 이고 MkgBool 의 type 은 G Bool 로 서로 다릅니다! 이게 어떤 장점이 있는지 알아봅시다. 다음 코드를 봅시다.
+```haskell
+{-# LANGUAGE GADTs #-}
+data Natural = Zero | Succ Natural
+data Vec n a where
+  VNil:: Vec Zero a
+  VCons:: a -> Vec n a -> Vec (Succ n) a
+infixr 5 `VCons` -- VCons 연산자를 right-associative 하게 정의.
+```
+위의 Vec n a 자료형에서 첫번째 인자 n 은 Vector 의 길이를 뜻하고 두번째 인자 a 는 Vector 요소의 type 을 뜻합니다. 
+
+이때 다음처럼 dummy type variable(또는 phantom)을 이용합니다. 아래 코드에서 a 가 phantom 입니다.
 ```haskell
 data Expr a where
       I:: Int -> Expr Int
