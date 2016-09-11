@@ -636,9 +636,9 @@ a = (Dollars 8) + (Dollars 9) -- Dollars 17
 - GADTs(Generalised Algebraic Data Types)
 - KindSignatures, DataKinds
 - PolyKinds
+- ScopedTypeVariables
 - TypeInType
 - TypeOperators
-- ScopedTypeVariables
 - LiberalTypeSynonyms
 - ExistentialQuantification
 - TypeFamilies, TypeFamilyDependencies
@@ -846,19 +846,45 @@ App type 의 kind 를 확인해봅시다. ghci 에서 해 보겠습니다.
 
 이처럼 좀 더 구체적으로 kind 를 유추함을 알 수 있습니다.
 
-#####TypeInType
-
-#####TypeOperators
-
 #####ScopedTypeVariables
+이 확장은 "Lexically" scoped type variable 에 관한 것입니다. 다음 코드를 봅니다.
+```haskell
+f :: [a] -> [a]
+f (x:xs) = xs ++ [ x :: a ]
+```
+위 코드는 함수 f 의 선언부분에서 x::a 라는 type signature 를 주고 있습니다. 이렇게 하는 의도는 함수 f 의 선언부에 등장하는 x 라는 변수가 함수 f 의 type signature 에서 나오는 a 와 같은 type 의 원소 임을 명시해주기 위함입니다. 코드 이해를 돕기 위한 문서화라고 할 수 있습니다. 그런데 이 코드는 에러가 납니다. 꽤 긴 에러가 나는데 그 중에서 눈여겨 볼 부분은 다음입니다.
 
-#####LiberalTypeSynonyms
+    • Couldn't match expected type ‘a1’ with actual type ‘a’
+      ‘a’ is a rigid type variable bound by
+        the type signature for:
+          f :: forall a. [a] -> [a]
+        at lexically.hs:1:6
+      ‘a1’ is a rigid type variable bound by
+        an expression type signature:
+          forall a1. a1
+        at lexically.hs:2:25
 
-#####ExistentialQuantification
+이를 보면 a1 이 변수 x 의 type 이라고 나옵니다. 우리가 작성한 코드에서는 분명 변수 x 의 type 을 a 라고 주었는데 갑자기 a1 이라고 나옵니다. 즉, 이 에러가 말하는 바는 함수 f 의 signature 에서는 type 이 a 라고 했는데 함수 정의부에는 a1 이라는 다른 type 이니 서로 type 이 맞지 않다는 것입니다. 컴파일러가 이렇게 추론하는 이유는 Haskell2010 표준은 type signature 의 type variable 의 범위를 type signature 로 한정하고 있기 때문입니다. 즉, type signature 의 a 라는 type variable 을 함수 f 의
+정의부에서는 전혀 알 수가 없습니다. ScopedTypeVariable 확장은 말 그대로 type variable 이 영향을 미치는 범위를 type signature 이상으로 확장해줍니다. 위 코드를 이 확장을 써서 다시 작성하면 다음과 같습니다.
+```haskell
+{-# LANGUAGE ScopedTypeVariables #-}
+f :: forall a. [a] -> [a]
+f (x:xs) = xs ++ [ x :: a ]
+```
+
+참고로 이 확장에 대한 원 논문은 Simon Peyton Jones 가 작성한 [Lexically-scoped type variables](https://www.microsoft.com/en-us/research/publication/lexically-scoped-type-variables/) 입니다.
 
 #####TypeFamilies, TypeFamilyDependencies
 
-#####DefaultSignatures
+#####TypeInType
+
+참고로 이 확장에서 다루고 있는 kind system 에 대한 논문은 [System FC with Expilicit Kind Equality](http://www.seas.upenn.edu/~sweirich/papers/fckinds.pdf) 입니다.
+
+#####ExistentialQuantification
+
+#####TypeOperators
+
+#####LiberalTypeSynonyms
 
 #####ConstraintKinds
 
