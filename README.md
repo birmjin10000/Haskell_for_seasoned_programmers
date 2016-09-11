@@ -831,8 +831,20 @@ data Vec:: Natural -> * -> * where
 ```haskell
 data App f a = MkApp (f a)
 ```
-App type 의 kind 는 (* -> *) -> * -> * 입니다. 함수로 보이는 f 의 kind 가 * -> * 인 것이지요. 그런데 위의 코드를 보면 알 수 있듯이 함수 f 의 인자는 App type 선언시 두번째 인자 a 와 같습니다. 따라서 (* -> *) -> * -> * 보다는 (k -> *) -> k -> * 가 더 정확한 kind 입니다. 이렇게 좀 더 구체적으로 kind 를 유추할 수 있게 하려면 PolyKinds 확장이 필요합니다. 이 확장은 Kind Polymorphism 을 지원한다는 뜻입니다. Type Polymorphism 을 Kind 에도 적용하는 것입니다. 이제 ghci 에서 :set -XDataKinds 를 설정하고
-:k App 명령을 실행해보면 App type 의 kind 를 (k -> *) -> k -> * 로 유추하고 있음을 알 수 있습니다.
+App type 의 kind 를 확인해봅시다. ghci 에서 해 보겠습니다.
+
+    > data App f a = MkApp (f a)
+    > :k App
+    App :: (* -> *) -> * -> *
+
+함수로 보이는 f 의 kind 가 * -> * 인 것이지요. 그런데 위의 코드를 보면 알 수 있듯이 함수 f 의 인자는 App type 선언시 두번째 인자 a 와 같습니다. 따라서 (\* -> \*) -> * -> * 보다는 (k -> \*) -> k -> * 가 더 정확한 kind 입니다. 이렇게 좀 더 구체적으로 kind 를 유추할 수 있게 하려면 PolyKinds 확장이 필요합니다. 이 확장은 Kind Polymorphism 을 지원한다는 뜻입니다. Type Polymorphism 을 Kind 에도 적용하는 것입니다. 이제 ghci 에서 :set -XDataKinds 를 설정하고 다시 해 보겠습니다.
+
+    > :set -XPolyKinds
+    > data App f a = MkApp (f a)
+    > :k App
+    App :: (k -> *) -> k -> *
+
+이처럼 좀 더 구체적으로 kind 를 유추함을 알 수 있습니다.
 
 #####TypeInType
 
