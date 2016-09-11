@@ -633,10 +633,11 @@ a = (Dollars 8) + (Dollars 9) -- Dollars 17
 ## 두 번째 시간
 다음의 ghc 컴파일러 확장을 배웁시다.
 - RankNTypes
-- KindSignatures, PolyKinds, DataKinds
+- GADTs(Generalised Algebraic Data Types)
+- KindSignatures, DataKinds
+- PolyKinds
 - TypeInType
 - TypeOperators
-- GADTs(Generalised Algebraic Data Types)
 - ScopedTypeVariables
 - LiberalTypeSynonyms
 - ExistentialQuantification
@@ -708,10 +709,6 @@ length b -- 여기서의 length 함수의 type 은 [Double] -> Int 입니다.
 즉, Polymorphic function 의 type 은 해당 함수가 쓰이는 시점에 정해지는(instantiated) 것이지요. 이를 applyToTuple 예제에 대해서 생각해 보면 applyToTuple 함수의 첫번째 인자인 함수 f 의 type 은 "hello" 에 대해 적용될 때는 [Char]->Int 로 정해지고 [1,2,3] 에 대해 적용될 때는 Num a => [a] -> Int 로 정해집니다. 그렇기 때문에 forall 예약어의 위치가 중요한 것입니다.
 
 이처럼 parametric polymorphism 에서는 type variable 이 함수의 동작을 크게 규정합니다. 이를 Parametricity 라고 부르는데 예를 들어 f::[a] -> [a] 꼴인 함수 f 가 있을 때 이 함수가 하는 일을 추측해봅시다. 언뜻 매우 다양한 함수가 이 함수꼴 집합에 포함될 것이라고 생각할 수 있으나 사실은 정반대입니다. 모든 type 에 대하여 고려를 해야 하기 때문에 [a] -> [a] 꼴 함수집합에 속할 수 있는 함수는 매우 제한적입니다. 예를 들어 이 함수가 각 인자를 1 만큼 증가시키는 함수라고 추측해봅시다. 가능할까요? type variable 'a' 가 Int type 이면 가능합니다. 그런데 Bool type 이라면? 불가능한 일입니다. 따라서 [a] -> [a] 꼴 함수가 할 수 있는 일은 인자들의 순서를 재배열하거나, 인자들의 갯수를 늘리거나 또는 줄이는 일 정도입니다. 그 외에 혹시라도 뭐가 또 있을 수 있을까요?
-
-#####DataKinds
-
-#####TypeOperators
 
 #####GADTs(Generalized Algebraic Data Types)
 다음과 같은 data type 을 정의한다고 해 봅시다.
@@ -786,13 +783,72 @@ eq = Eq
 ```
 GADTs extension 을 통해 이러한 것이 가능합니다.
 
+#####KindSignatures, DataKinds
+Haskell 은 type variable 의 kind 를 알아서 유추하지만 프로그래머가 직접 kind 를 명시해주는 것이 코드를 이해하기에 좋을 수도 있습니다. 마치 함수의 type 을 프로그래머가 직접 명시해 주는 것처럼. 다음 코드를 봅시다.
+```haskell
+{-# LANGUAGE GADTs #-}
+data Z
+data S n
+
+data Vec n a where
+  Nil:: Vec Z a
+  Cons:: a -> Vec n a -> Vec (S n) a
+```
+위 코드에서 Vec 의 kind 는 * -> * -> * 입니다. 이를 명시적으로 주려면 다음처럼 하면 됩니다.
+```haskell
+{-# LANGUAGE GADTs, KindSignatures #-}
+data Z
+data S n
+
+data Vec:: * -> * -> * where
+  Nil:: Vec Z a
+  Cons:: a -> Vec n a -> Vec (S n) a
+```
+그런데 위 코드의 Vec 자료형의 의도는 type 자체에 해당 자료형의 크기를 포함하는 것입니다. 즉, 길이가 1인 Vec 자료형은 type 이 Vec (S Z) a 이고 길이가 2면 type 이 Vec (S (S Z)) a 가 되어서 type 자체에 자료형의 길이가 드러나게 되는 것입니다. 따라서 Vec type 의 kind 는 우리의 의도를 더 잘 표현하려면 * -> * -> * 보다는 좀 더 구체적으로 (자연수 type의 kind) -> * -> * 가 되는 것입니다. 일단 자연수를 뜻하는  type 을 다음처럼 정의할 수 있습니다.
+```haskell
+data Natural = Zero | Succ Natural
+```
+그런데 이 Natural type 의 kind 가 * 가 아니라 다른 것과 구분할 수 있는 것이어야 합니다. 이 때 필요한 것이 DataKinds 확장입니다. DataKinds 확장을 쓰면 자료형 선언시 해당 자료형 type 의 kind 가 자동으로 만들어집니다. 위 코드를 ghci 에서 불러온 다음 DataKinds 확장을 활성화해보겠습니다.
+
+    > :set -XDataKinds
+    > :k 'Zero
+    'Zero:: Natural
+    > :k 'Succ
+    'Succ:: Natural -> Natural
+
+DataKinds 확장을 하면 data type 은 kind 로, value constructor 는 type constructor 로 승격이 됩니다. 다시 말해 Natural 이란 data type 이 이제는 kind 를 뜻하기도 하는 것이지요. 그리고 이렇게 승격을 통해 만들어진 type constructor 들은 원래의 value constructor 이름 앞에 홑따옴표가 붙게 됩니다. 이제 Natural 은 kind 이기도 하므로 다음과 같은 코드를 작성할 수 있습니다.
+
+```haskell
+{-# LANGUAGE GADTs, KindSignatures, DataKinds #-}
+data Natural = Zero | Succ Natural
+
+data Vec:: Natural -> * -> * where
+  Nil:: Vec Zero a
+  Cons:: a -> Vec n a -> Vec (Succ n) a
+```
+#####PolyKinds
+다음과 같은 코드가 있습니다.
+```haskell
+data App f a = MkApp (f a)
+```
+App type 의 kind 는 (* -> *) -> * -> * 입니다. 함수로 보이는 f 의 kind 가 * -> * 인 것이지요. 그런데 위의 코드를 보면 알 수 있듯이 함수 f 의 인자는 App type 선언시 두번째 인자 a 와 같습니다. 따라서 (* -> *) -> * -> * 보다는 (k -> *) -> k -> * 가 더 정확한 kind 입니다. 이렇게 좀 더 구체적으로 kind 를 유추할 수 있게 하려면 PolyKinds 확장이 필요합니다. 이 확장은 Kind Polymorphism 을 지원한다는 뜻입니다. Type Polymorphism 을 Kind 에도 적용하는 것입니다. 이제 ghci 에서 :set -XDataKinds 를 설정하고
+:k App 명령을 실행해보면 App type 의 kind 를 (k -> *) -> k -> * 로 유추하고 있음을 알 수 있습니다.
+
+#####TypeInType
+
+#####TypeOperators
+
 #####ScopedTypeVariables
 
 #####LiberalTypeSynonyms
 
 #####ExistentialQuantification
 
-#####TypeFamilies
+#####TypeFamilies, TypeFamilyDependencies
+
+#####DefaultSignatures
+
+#####ConstraintKinds
 
 ## 세 번째 시간
 - Standalone deriving
