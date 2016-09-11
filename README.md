@@ -637,10 +637,11 @@ a = (Dollars 8) + (Dollars 9) -- Dollars 17
 - KindSignatures, DataKinds
 - PolyKinds
 - ScopedTypeVariables
+- ExistentialQuantification
+    * Existential Types
 - TypeInType
 - TypeOperators
 - LiberalTypeSynonyms
-- ExistentialQuantification
 - TypeFamilies, TypeFamilyDependencies
 - DefaultSignatures
 - ConstraintKinds
@@ -874,13 +875,15 @@ f (x:xs) = xs ++ [ x :: a ]
 
 참고로 이 확장에 대한 원 논문은 Simon Peyton Jones 가 작성한 [Lexically-scoped type variables](https://www.microsoft.com/en-us/research/publication/lexically-scoped-type-variables/) 입니다.
 
+#####ExistentialQuantification
+
+######Existential Types
+
 #####TypeFamilies, TypeFamilyDependencies
 
 #####TypeInType
 
 참고로 이 확장에서 다루고 있는 kind system 에 대한 논문은 [System FC with Expilicit Kind Equality](http://www.seas.upenn.edu/~sweirich/papers/fckinds.pdf) 입니다.
-
-#####ExistentialQuantification
 
 #####TypeOperators
 
