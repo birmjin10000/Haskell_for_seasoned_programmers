@@ -655,7 +655,7 @@ length:: [a] -> Int
 ```haskell
 length:: forall a.[a] -> Int
 ```
-Haskell 에서 polymorphic 함수의 type 에는 이처럼 forall 이 묵시적으로 붙어 있습니다. forall 이 뜻하는 바는 a 의 type 이 무엇이건간에 [a] -> Int 꼴 함수 length 가 성립한다는 것입니다. 즉, a 가 Int 여도 되고 Char 이어도 되고 Bool 이어도 되고 등등. 참고로 이것은 Predicate Logic 의 Universal Quantification 와 같은 것입니다. 예) 모든 사람은 죽는다: ∀{man(x) -> Die(x)}
+Haskell 에서 polymorphic 함수의 type 에는 이처럼 forall 이 묵시적으로 붙어 있습니다. forall 이 뜻하는 바는 a 의 type 이 무엇이건간에 [a] -> Int 꼴 함수 length 가 성립한다는 것입니다. 즉, a 가 Int 여도 되고 Char 이어도 되고 Bool 이어도 되고 등등. 참고로 이것은 Predicate Logic 의 Universal Quantification 와 같은 것입니다. 예) 모든 사람은 죽는다: ∀x{Human(x) -> Die(x)}
 Polymorphic type system 에서 Rank 라 함은 이 forall 이 type 표기의 어느 부분에 나올지에 관한 것입니다. Rank-1 type system 이라면 forall 은 type 표기의 가장 바깥쪽에만 올 수 있습니다. 위의 length 함수의 type 처럼. Rank-2 type system 이라면 forall 이 type 표기의 한 단계 안쪽까지 올 수 있습니다. 다음은 Rank-2 type 과 Rank-3 type 의 예입니다.
 ```haskell
 {-# LANGUAGE RankNTypes #-}
@@ -764,9 +764,9 @@ data Vec n a where
   VCons:: a -> Vec n a -> Vec (Succ n) a
 infixr 5 `VCons` -- VCons 연산자를 right-associative 하게 정의.
 ```
-위의 Vec n a 자료형에서 첫번째 인자 n 은 Vector 의 길이를 뜻하고 두번째 인자 a 는 Vector 요소의 type 을 뜻합니다. 
+위의 Vec n a 자료형에서 첫번째 인자 n 은 Vector 의 길이를 뜻하고 두번째 인자 a 는 Vector 요소의 type 을 뜻합니다.
 
-이때 다음처럼 dummy type variable(또는 phantom)을 이용합니다. 아래 코드에서 a 가 phantom 입니다.
+이때 다음처럼 dummy type variable(또는 phantom)을 이용합니다. 아래 코드에서 a 가 phantom 입니다. a 는 where 구문 이후에 전혀 등장하지 않기 때문에 phantom 이라고 부릅니다.
 ```haskell
 data Expr a where
       I:: Int -> Expr Int
@@ -792,8 +792,8 @@ data Z
 data S n
 
 data Vec n a where
-  Nil:: Vec Z a
-  Cons:: a -> Vec n a -> Vec (S n) a
+  VNil:: Vec Z a
+  VCons:: a -> Vec n a -> Vec (S n) a
 ```
 위 코드에서 Vec 의 kind 는 * -> * -> * 입니다. 이를 명시적으로 주려면 다음처럼 하면 됩니다.
 ```haskell
@@ -802,10 +802,10 @@ data Z
 data S n
 
 data Vec:: * -> * -> * where
-  Nil:: Vec Z a
-  Cons:: a -> Vec n a -> Vec (S n) a
+  VNil:: Vec Z a
+  VCons:: a -> Vec n a -> Vec (S n) a
 ```
-그런데 위 코드의 Vec 자료형의 의도는 type 자체에 해당 자료형의 크기를 포함하는 것입니다. 즉, 길이가 1인 Vec 자료형은 type 이 Vec (S Z) a 이고 길이가 2면 type 이 Vec (S (S Z)) a 가 되어서 type 자체에 자료형의 길이가 드러나게 되는 것입니다. 따라서 Vec type 의 kind 는 우리의 의도를 더 잘 표현하려면 * -> * -> * 보다는 좀 더 구체적으로 (자연수 type의 kind) -> * -> * 가 되는 것입니다. 일단 자연수를 뜻하는  type 을 다음처럼 정의할 수 있습니다.
+그런데 위 코드의 Vec 자료형의 의도는 type 자체에 해당 자료형의 크기를 포함하는 것입니다. 즉, 길이가 1인 Vec 자료형은 type 이 Vec (S Z) a 이고 길이가 2면 type 이 Vec (S (S Z)) a 가 되어서 type 자체에 자료형의 길이가 드러나게 되는 것입니다. 따라서 Vec type 의 kind 는 우리의 의도를 더 잘 표현하려면 * -> * -> * 보다는 좀 더 구체적으로 (자연수 type의 kind) -> * -> * 가 되는 것입니다. 일단 자연수를 뜻하는 type 을 다음처럼 정의하겠습니다. 참고로 이는 앞서 GADTs 에 대해 배울 때 한 번 나왔습니다.
 ```haskell
 data Natural = Zero | Succ Natural
 ```
@@ -824,8 +824,8 @@ DataKinds 확장을 하면 data type 은 kind 로, value constructor 는 type co
 data Natural = Zero | Succ Natural
 
 data Vec:: Natural -> * -> * where
-  Nil:: Vec Zero a
-  Cons:: a -> Vec n a -> Vec (Succ n) a
+  VNil:: Vec Zero a
+  VCons:: a -> Vec n a -> Vec (Succ n) a
 ```
 #####PolyKinds
 다음과 같은 코드가 있습니다.
@@ -876,6 +876,20 @@ f (x:xs) = xs ++ [ x :: a ]
 참고로 이 확장에 대한 원 논문은 Simon Peyton Jones 가 작성한 [Lexically-scoped type variables](https://www.microsoft.com/en-us/research/publication/lexically-scoped-type-variables/) 입니다.
 
 #####ExistentialQuantification
+앞서 Predicate Logic 의 Universal Quantification 에 대한 잠시 다루었는데 Existential Quantification 은 다음과 같습니다. 예) 똑똑한 한국사람이 적어도 한명 있다: ∃x{Korean(x) ∧ Smart(x)}
+Universal Quantification 과 Existential Quantification 은 서로 상호 변환이 가능한데 이 때 다음 두 가지 추론 규칙을 사용합니다.
+
+    α ⇒ β ≡ ¬α ∨ β    (Implication Elimination)
+    ∀x.A(x) ≡ ¬∃x.¬A(x)    (De Morgan's rules)
+
+위 두 규칙을 이용하여 (∀x.A(x) ⇒ B) 을 바꾸어보겠습니다.
+
+    (∀x.A(x) ⇒ B)
+    (∀x.¬A(x) ∨ B)
+    (∀x.¬A(x)) ∨ B
+    (¬∃x.A(x)) ∨ B
+    (∃x.A(x)) ⇒ B
+
 
 ######Existential Types
 
