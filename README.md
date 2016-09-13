@@ -536,6 +536,11 @@ inits [y|x<-[1..3], y<-"cat"] -- 같은 결과를 얻습니다.
 map (foldr (\(num,ch) acc -> (num:fst acc, ch:snd acc)) ([],[])) $ inits [(x,y)|x<-[1,2], y<-"hi"] -- 같은 결과
 ```
 #####FlexibleContexts
+이 확장을 쓰면 class constraints 에 다음처럼 하는 게 가능합니다.
+
+    (Stream s u Char) =>
+
+즉, type variable 을 polymorphic 하게 사용하지 않고 특정 type 으로 지정할 수 있습니다. 여기서는 Char.
 
 #####RecursiveDo
 
@@ -876,7 +881,8 @@ f (x:xs) = xs ++ [ x :: a ]
 참고로 이 확장에 대한 원 논문은 Simon Peyton Jones 가 작성한 [Lexically-scoped type variables](https://www.microsoft.com/en-us/research/publication/lexically-scoped-type-variables/) 입니다.
 
 #####ExistentialQuantification
-앞서 Predicate Logic 의 Universal Quantification 에 대한 잠시 다루었는데 Existential Quantification 은 다음과 같습니다. 예) 똑똑한 한국사람이 적어도 한명 있다: ∃x{Korean(x) ∧ Smart(x)}
+앞서 Predicate Logic 의 Universal Quantification 에 대해 잠시 다루었는데 Existential Quantification 은 다음과 같습니다. 예) 똑똑한 한국사람이 적어도 한명 있다: ∃x{Korean(x) ∧ Smart(x)}
+
 Universal Quantification 과 Existential Quantification 은 서로 상호 변환이 가능한데 이 때 다음 두 가지 추론 규칙을 사용합니다.
 
     α ⇒ β ≡ ¬α ∨ β    (Implication Elimination)
@@ -890,10 +896,71 @@ Universal Quantification 과 Existential Quantification 은 서로 상호 변환
     (¬∃x.A(x)) ∨ B
     (∃x.A(x)) ⇒ B
 
+이제 Haskell 코드에서 이것이 어떻게 나타나는지 살펴보겠습니다. Haskell 의 List 는 Homogeneous list 인데 여기서 한 번 Heterogenous list 를 만들어보겠습니다. 다음처럼 ShowBox 라는 wrapper 를 만들어서 하면 됩니다.
+```haskell
+{-# LANGUAGE ExistentialQuantification #-}
+data ShowBox = forall s. Show s => SB s
+
+heteroList :: [ShowBox]
+heteroList = [SB (), SB 5, SB True]
+```
+Existential Quantification 을 이용하여 세 개의 서로 다른 type 을 하나의 list 에 담았습니다. 위 코드에서 forall 예약어를 쓴 부분이 바로 Existential Quantification 확장을 이용하는 부분입니다. 이 부분은 위의 Predicate logic 설명에 나온 (∀x.A(x) ⇒ B) 을 코드로 옮긴 것입니다.
+
+이렇게 만든 heteroList 를 사용하는 코드를 만들어보겠습니다. ShowBox 가 감싸고 있는 것은 Show typeclass 에 속하기 때문에 show 함수를 쓸 수 있습니다.
+```haskell
+instance Show ShowBox where
+  show (SB s) = show s
+
+f :: [ShowBox] -> IO ()
+f xs = mapM_ print xs
+
+main = f heteroList
+```
+위 코드를 컴파일하고 실행해보면 heteroList 에 담겨있는 것을 출력함을 볼 수 있습니다.
+
+Existential Quantification 은 그자체로는 특별한 쓰임새가 있지는 않으나 다른 기능들의 밑바탕에 깔리는 중요 개념입니다. 따라서 Existential type 에 대하여 이해를 할 필요가 있습니다.
 
 ######Existential Types
+Existential type 은 Abstract Data Type(이후 ADT) 을 위한 것입니다.
 
 #####TypeFamilies, TypeFamilyDependencies
+Type families 확장은 다음 네 가지 개념을 포함합니다.
+
+첫째, *Associated (Data) Type*
+```haskell
+class ArrayElem e where
+  data Array e
+  index :: Array e -> Int -> e
+
+instance ArrayElem Int where
+  data Array Int = IntArray UIntArr
+  index (IntArray a) i = ...
+```
+
+둘째, **Associated (Type) Synonym**
+```haskell
+class Collection c where
+  type Elem c
+  insert :: Elem c -> c -> c
+
+instance Eq e => Collection [e] where
+  type Elem [e] = e
+  ...
+```
+
+셋째, Data (Type) Family
+```haskell
+data family Array e
+data instance Array Int = IntArray UIntArr
+data instance Array Char = MyCharArray a b
+```
+
+넷째, (Type) Synonym Family
+```haskell
+type family Elem c
+type instance Elem [e] = e
+type instance Elem BitSet = Char
+```
 
 #####TypeInType
 
