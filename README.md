@@ -926,7 +926,7 @@ Existential type 은 Abstract Data Type(이후 ADT) 을 위한 것입니다.
 #####TypeFamilies, TypeFamilyDependencies
 Type families 확장은 다음 네 가지 개념을 포함합니다.
 
-첫째, *Associated (Data) Type*
+첫째, **Associated (Data) Type**
 ```haskell
 class ArrayElem e where
   data Array e
@@ -936,6 +936,7 @@ instance ArrayElem Int where
   data Array Int = IntArray UIntArr
   index (IntArray a) i = ...
 ```
+이 코드를 보면 ArrayElem typeclass 안에 Array e 라는 data type 이 선언되어 있습니다. 이것이 표현하려는 바는 Array e 라는 data type 이 ArrayElem typeclass 에 종속적인 관계라는 것입니다. 
 
 둘째, **Associated (Type) Synonym**
 ```haskell
@@ -947,20 +948,26 @@ instance Eq e => Collection [e] where
   type Elem [e] = e
   ...
 ```
+이번에는 data type 대신 type synonym 이 나올 뿐 첫번째 경우와 같은 맥락입니다.
 
-셋째, Data (Type) Family
+위의 두 가지 개념은 "Associated" 란 개념으로 묶을 수 있는데 이는 표준 typeclass 정의 안에 data type 또는 type synonym 을 두는 것입니다. 그리고 아래에 나오는 두 가지 개념은 "Family" 란 개념으로 묶을 수 있는데 이는 "Associated" 란 개념을 엄밀하게 일반화한 것입니다. 반대로 말해 "Associated" 개념은 "Family" 란 개념의 syntactic sugar 라고 할 수 있습니다.
+
+셋째, **Data (Type) Family**
 ```haskell
 data family Array e
 data instance Array Int = IntArray UIntArr
 data instance Array Char = MyCharArray a b
 ```
+family 라는 예약어를 사용합니다.
 
-넷째, (Type) Synonym Family
+넷째, **(Type) Synonym Family**
 ```haskell
 type family Elem c
 type instance Elem [e] = e
 type instance Elem BitSet = Char
 ```
+
+
 
 #####TypeInType
 
