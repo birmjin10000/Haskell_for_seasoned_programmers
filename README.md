@@ -1154,6 +1154,72 @@ instance Battle Grass Fire where
 
 이제 battle 함수의 인자 순서에 무관하게 Grass 형 pokemon 이 Water 형 pokemon 을 이기고 있음을 알 수 있습니다.
 
+이번에는 Family 개념에 대해 다루어보겠습니다. Memory 주소를 가르키는 pointer 는 미리 정해진 일정크기의 정수 단위로 정렬이 됩니다. 예를 들어 pointer 4 다음에는 8 이 오고 5 나 7은 유효한 pointer 주소가 아닙니다. 여기서는 pointer 주소를 type 수준에서 구분할 수 있도록 코드를 만들어 보겠습니다. 우선 다음처럼 몇 명 자연수를 type 으로 정의합니다.
+```haskell
+{-# LANGUAGE ScopedTypeVariables #-}
+data Zero
+data Succ n
+type One = Succ Zero
+type Two = Succ One
+type Four = Succ (Succ Two)
+type Six = Succ (Succ Four)
+type Eight = Succ (Succ Six)
+
+class Natural n where
+  toInt:: n -> Int
+instance Natural Zero where
+  toInt _ = 0
+instance (Natural n) => Natural (Succ n) where
+  toInt _ = 1 + toInt (undefined:: n)
+```
+위 코드를 ghci 에서 불러들인 다음 다음을 실행해 봅니다.
+
+    > toInt (undefined:: Two)
+    2
+
+참고로 Natural type class 의 type variable 'n' 은 phantom 입니다. 이제 Pointer 에 관한 type 을 만들겠습니다.
+```haskell
+{- 위의 코드에 이어서 작성합니다. -}
+newtype Pointer n = MkPointer Int deriving Show
+newtype Offset n = MkOffset Int deriving Show
+
+multiple:: forall n. (Natural n) => Int -> Offset n
+multiple i = MkOffset (i * toInt (undefined:: n))
+```
+위의 코드에서 Pointer n 이 뜻하는 것은 n-bytes 단위를 가진 Pointer 입니다. 즉, Pointer 8 이면 8 bytes 단위 Pointer 를 뜻합니다. Offset n 은 n-bytes 단위의 편차를 뜻합니다. 여기까지 작성한 코드를 ghci 에서 불러들인 다음 다음처럼 실행해봅시다.
+
+    > let x = multiple 3::Offset Four
+    > x
+    MkOffset 12
+    > :t x
+    x :: Offset Four
+
+x 에 12 bytes offset 을 뜻하는 값이 들어가 있고 그것의 type 이 Offset Four 임을 보여줍니다. 이제 Pointer 에 Offset 을 더하는 함수 add 를 만들겠습니다. add 의 결과로 나오는 Pointer type 은 Pointer 와 Offset 의 최대공약수가 될 것입니다. 즉, Pointer Eight 과 Offset Six 를 더한 결과의 type 은 Pointer Two 가 될 것입니다. 여기서 필요한 것이 GCD 라는 type function 으로 이를 통해 각 경우에 적합한 type 을 얻어옵니다. GCD 는 인자로 들어오는 것들의 type 에 따라 여러 개의 instance 를 가지며 이를family 로서 묶어서 같은 type 임을 뜻하는 것임을 명시합니다.
+
+```haskell
+{-# LANGUAGE TypeFamilies, ScopedTypeVariables #-}
+{- 앞서 작성한 코드는 이 부분에 들어갑니다. -}
+add:: Pointer m -> Offset n -> Pointer (GCD Zero m n)
+add (MkPointer x) (MkOffset y) = MkPointer (x + y)
+
+type family GCD d m n
+type instance GCD d Zero Zero = d
+type instance GCD d (Succ m) (Succ n) = GCD (Succ d) m n
+type instance GCD Zero (Succ m) Zero = Succ m
+type instance GCD (Succ d) (Succ m) Zero = GCD (Succ Zero) d m
+type instance GCD Zero Zero (Succ n) = Succ n
+type instance GCD (Succ d) Zero (Succ n) = GCD (Succ Zero) d n
+```
+지금까지 작성한 코드를 ghci 로 불러들인 다음에 다음 코드를 실행해봅니다.
+
+    > let a = MkPointer 8::Pointer Eight
+    > let b = MkOffset 6::Offset Six
+    > let c = add a b
+    > :t c
+    c :: Pointer (Succ (Succ Zero))
+
+이를 보면 add a b 의 결과값의 type 은 Pointer Two 로서 원래의 Pointer Eight 과는 정렬이 되지 않음음 type 수준에서 알 수 있습니다.
+
 ####TypeInType
 
 참고로 이 확장에서 다루고 있는 kind system 에 대한 논문은 [System FC with Expilicit Kind Equality](http://www.seas.upenn.edu/~sweirich/papers/fckinds.pdf) 입니다.
