@@ -1041,7 +1041,7 @@ instance Battle Grass GrassMove Fire FireMove where
 
     (Bubble,Ember)
 
-이렇게 type annotation 을 주어야만 프로그램이 동작하는 이유는 type checker 가 Pokemon type 과 Pokemon move type 간의 관계를 알지 못하기 때문입니다. 따라서 Pokemon Fire WaterMove 와 같은 전혀 바라지 않은 instance 도 만들 수 있습니다. TypeFamilies 확장을 이용하여 이러한 것을 보완할 수 있습니다. 다음 코드를 보면 Pokemon typeclass 가 인자를 하나만 받게 되어 있고 대신 Move a 라는 associated type 이 들어가 있습니다. 즉, 이제부터는 FireMove 대신 Move Fire 를 사용하는 것입니다.
+이렇게 type annotation 을 주어야만 프로그램이 동작하는 이유는 type checker 가 Pokemon type 과 Pokemon move type 간의 관계를 알지 못하기 때문입니다. 따라서 Pokemon Fire WaterMove 와 같은 전혀 바라지 않은 instance 도 만들 수 있습니다. TypeFamilies 확장을 이용하여 이러한 것을 보완할 수 있습니다. 다음 코드를 보면 Pokemon typeclass 가 인자를 하나만 받게 되어 있고 대신 Move a 라는 associated type 이 들어가 있습니다. 즉, 이제부터는 FireMove 대신 Move Fire 를 사용하는 것으로 Pokemon type 과 Pokemon move type 간의 연관성이 type 수준에서 생기는 것입니다.
 ```haskell
 {-# LANGUAGE TypeFamilies, FlexibleContexts #-}
 class (Show a, Show (Move a)) => Pokemon a where
@@ -1073,6 +1073,86 @@ instance Pokemon Grass where
   data Move Grass = VineWhip deriving Show
   pickMove _ = VineWhip
 ```
+위 코드를 ghci 에서 불러들인 다음 pickMove Charmander 를 실행하면 이번에는 type annotation 없이도 코드가 정상적으로 실행함을 알 수 있습니다. 이제 Battle type class 도 새로운 Pokemon type class 에 맞추어 수정을 해보겠습니다.
+```haskell
+{-# LANGUAGE TypeFamilies, MultiParamTypeClasses, FlexibleContexts #-}
+{- 바로 전의 Pokemon type class 관련 코드를 여기 붙입니다.
+-}
+class (Pokemon a, Pokemon b) => Battle a b where
+  battle :: a -> b -> IO ()
+  battle pokemon foe = do
+    printBattle (show pokemon) (show move) (show foe) (show foeMove) (show pokemon)
+    where
+      foeMove = pickMove foe
+      move = pickMove pokemon
+
+instance Battle Water Fire
+instance Battle Fire Water where
+  battle = flip battle
+
+instance Battle Grass Water
+instance Battle Water Grass where
+  battle = flip battle
+
+instance Battle Fire Grass
+instance Battle Grass Fire where
+  battle = flip battle
+
+printBattle :: String -> String -> String -> String -> String -> IO ()
+printBattle pokemonOne moveOne pokemonTwo moveTwo winner = do
+  putStrLn $ pokemonOne ++ " used " ++ moveOne
+  putStrLn $ pokemonTwo ++ " used " ++ moveTwo
+  putStrLn $ "Winner is: " ++ winner ++ "\n"
+```
+위 코드를 ghci 에서 불러들이고 다음 코드를 실행해 봅니다.
+
+    > battle Squirtle Charmander
+    Squirtle used Bubble
+    Charmander used Ember
+    Winner is: Squirtle
+
+이제 위처럼 type annotation 없이도 잘 동작합니다.
+
+한편, 지금까지 만든 코드에서는 battle 함수 호출시 첫번째 인자로 넘어간 Pokemon 이 항상 이기는 걸로 되어 있습니다. 이제 이 부분을 수정해서 인자 위치에 상관없이 어느 Pokemon 이 이길지를 코드에서 결정할 수 있도록 해 보겠습니다. 구체적으로 예를 들면 Fire 유형의 Pokemon 과 Water 유형의 Pokemon 이 싸우면 항상 Water 유형의 Pokemon 이 이기도록 하는 것입니다. 그러기 위해 Battel type class 에 Winner 라는 type 을 추가합니다. 그런데 Winner 는 새로운 type 이 아니라 기존에 Battle type class 의 두 개의 인자(둘 다 Pokemon type) 중 하나를 선택하는 것이므로 type synonym 입니다.
+```haskell
+class (Show (Winner a b), Pokemon a, Pokemon b) => Battle a b where
+  type Winner a b :: *  -- 이것이 Associated type synonym 입니다.
+  type Winner a b = a  -- default Implementation
+  battle :: a -> b -> IO ()
+  battle pokemon foe = do
+    printBattle (show pokemon) (show move) (show foe) (show foeMove) (show winner)
+    where
+      foeMove = pickMove foe
+      move = pickMove pokemon
+      winner = pickWinner pokemon foe
+  pickWinner:: a -> b -> Winner a b
+
+instance Battle Water Fire where
+  pickWinner a b = a
+instance Battle Fire Water where
+  type Winner Fire Water = Water
+  pickWinner = flip pickWinner
+
+instance Battle Grass Water where
+  pickWinner a b = a
+instance Battle Water Grass where
+  type Winner Water Grass = Grass
+  pickWinner = flip pickWinner
+
+instance Battle Fire Grass where
+  pickWinner a b = a
+instance Battle Grass Fire where
+  type Winner Grass Fire = Fire
+  pickWinner = flip pickWinner
+```
+위 코드를 보면 Winner 를 결정하는 부분은 이제 instance 정의부에 있습니다. 위 코드를 ghci 에서 불러서 다음 코드를 실행해봅니다.
+
+    > battle Wartortle Ivysaur
+    Wartortle used WaterGun
+    Ivysaur used VineWhip
+    Winner is: Ivysaur
+
+이제 battle 함수의 인자 순서에 무관하게 Grass 형 pokemon 이 Water 형 pokemon 을 이기고 있음을 알 수 있습니다.
 
 ####TypeInType
 
