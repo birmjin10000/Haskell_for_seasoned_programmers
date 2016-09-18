@@ -308,13 +308,13 @@ Data.Sequence, Data.Vector, Data.Array 는 모두 순차적인 자료구조입�
 
 GHC 컴파일러 확장은 꽤 종류가 많은데 그 중에는 여러 사람들이 대체로 사용을 권장하지 않는 것도 있습니다. 여기에서 소개하는 확장들도 꼭 사용을 권장하는 확장들만 있는것은 아닙니다. 그러나 소스 코드를 볼 때 비교적 자주 볼 수 있는 것들이기에 소개합니다.
 
-#####BinaryLiterals
+####BinaryLiterals
 0b 또는 0B를 앞에 붙일 경우 그 다음에 나오는 숫자는 이진수를 뜻합니다. 즉 아래 코드에서 0b1101 은 이진수 1101 를 뜻합니다.
 ```haskell
 {-# LANGUAGE BinaryLiterals #-}
 a = 0b1101 -- 13
 ```
-#####OverloadedStrings
+####OverloadedStrings
 다음 코드를 봅시다. 숫자의 type은 Int, Float, Double 등 여러가지인데, Haskell에서는 같은 숫자라도 주어진 type에 따라 type이 달리 정해질 수 있습니다. 숫자에 대해서는 다형성을 기본 지원해 주는 것이지요.
 
     > let a::Int; a = 2
@@ -342,7 +342,7 @@ b = "백두산"
 c::String
 c = "백두산"
 ```
-#####LambdaCase
+####LambdaCase
 case .. of 구문은 LambdaCase 확장을 이용하면 좀 더 간결하게 작성할 수 있습니다.
 ```haskell
 {-# LANGUAGE LambdaCase #-}
@@ -351,7 +351,7 @@ sayHello names = map (\case
                    "둘리" -> "공룡아, 안녕!"
                    name -> name ++", 반가워요!") names
 ```
-#####BangPatterns
+####BangPatterns
 Haskell 의 lazy evaluation 은 stack을 많이 사용하는 상황을 만들 수 있습니다. 이 때 사용할 수 있는 것이 Bang Patterns 입니다. 이를 사용하면 eager evaluation 을 하도록 만들 수 있습니다. 다음 코드처럼 변수 이름 앞에 느낌표를 붙이면 해당 변수는 thunk 에서 value 로 평가됩니다.
 ```haskell
 {-# LANGUAGE BangPatterns #-}
@@ -363,7 +363,7 @@ mean xs = s / l
         step (!x,!y) a = (x+a,y+1)
 ```
 
-#####TupleSections
+####TupleSections
 Tuple 을 만들 때 일부 요소를 partially applied 한 꼴을 이용할 수 있게 합니다. 다음 코드를 봅시다.
 ```haskell
 {-# LANGUAGE TupleSections #-}
@@ -372,7 +372,7 @@ Tuple 을 만들 때 일부 요소를 partially applied 한 꼴을 이용할 수
 map ("yo!",) [1,2,3] -- [("yo!",1),("yo!",2),("yo!",3)]
 ```
 
-#####FlexibleInstances, TypeSynonymInstances
+####FlexibleInstances, TypeSynonymInstances
 Haskell 에서 type class 의 인스턴스를 만들 때는 그 형식이 "type 이름 + type variable 목록" 이어야 합니다. 그래서 다음 처럼 이를 벗어난 인스턴스를 만들면 컴파일 에러가 납니다.
 ```haskell
 class Something a where
@@ -408,7 +408,7 @@ Error 가 나는 이유는...
 {-# LANGUAGE TypeSynonymInstances #-}
 
 ```
-#####MultiParamTypeClasses
+####MultiParamTypeClasses
 지금까지는 type class 를 만들 때 type variable 을 하나만 사용했습니다. 그런데 다음과 같은 경우에는 type parameter 가 두 개가 필요합니다. container 를 뜻하는 type class 를 만들려면 다음과 같이 할 수 있을 겁니다. 그런데 이를 컴파일하면 에러가 납니다.
 ```haskell
 {-# LANGUAGE FlexibleInstances #-}
@@ -436,7 +436,7 @@ ins2 xs a b = insert (insert xs a) b
     ins2::(Collection c e1, Collection c e) => c -> e1 -> e -> c
 
 이는 우리가 원하는 결과가 아닙니다. e1 과 e 가 같은 type 이라는 것을 compiler 가 모르기 때문에 이처럼 지나치게 일반화된 type 으로 추론을 했습니다. 이 같은 문제를 해결할 수 있는 것이 다음의 Functional Dependency 확장입니다.
-#####FunctionalDependencies
+####FunctionalDependencies
 아래 코드처럼 Functional Dependency 확장을 이용하면 ins2 함수의 type 을 컴파일러가 어떻게 추론하는지 봅시다.
 ```haskell
 {-# LANGUAGE FunctionalDependencies #-}
@@ -450,7 +450,7 @@ class Eq e => Collection c e | c -> e where
     ins2::Collection c e => c -> e -> e -> c
 
 
-#####RecordWildCards
+####RecordWildCards
 RecordWildCards 확장의 주 목적은 코드를 좀 더 간결하게 보이도록 하는 것입니다. 다음과 같은 Record syntax 의 자료형이 있다고 합시다.
 ```haskell
 data Worker = Worker
@@ -481,14 +481,14 @@ f (C {a = 1, ..}) = b + c + d
 f (C {..}) = b * c * d
 ```
 이렇게 코드를 작성했을때 f (C 1 2 3 4) 의 결과는 9 가 되고 f (C 9 2 3 4) 의 결과는 24가 됩니다.
-#####ParallelListComp
+####ParallelListComp
 List comprehension 에서는 Cartesian product 가 나옵니다. 즉, [x+y|x<-[1..3],y<-[10..12]] 의 결과는 길이가 9인 List 가 됩니다. ParallelListComp 확장을 쓰면 각 원소들을 1:1 대응하여 연산을 수행합니다. ParallelListComp 확장의 경우 generator 간 구분은 쉼표가 아니라 수직선으로 합니다.
 ```haskell
 {-# LANGUAGE ParallelListComp #-}
 [x+y|x<-[1..3] | y <-[10..12]] -- 결과는 [11,13,15]
 ```
 이는 zipWith (+) [1..3] [10..12] 한 것과 같은 결과로서 ParallelListComp 를 이용한 표현식은 zipWith 를 이용하여 똑같이 작성할 수 있습니다. 그럼에도 ParallelListComp 확장을 쓰면 좋은 점은 코드를 좀 더 보기좋게 작성할 수 있다는 점에 있습니다.
-#####TransformListComp
+####TransformListComp
 TransformListComp 는 List Comprehension 의 기능을 더욱 확장한 것으로 볼 수 있는데 이 확장을 사용하면 마치 SQL query 를 작성하듯 grouping, sorting 기능들을 써서 List comprehension 을 작성할 수 있습니다.
 ```haskell
 {-# LANGUAGE TransformListComp #-}
@@ -535,16 +535,16 @@ inits [y|x<-[1..3], y<-"cat"] -- 같은 결과를 얻습니다.
 -- [([],""),([1],"h"),([1,1],"hi"),([1,1,2],"hih"),([1,1,2,2],"hihi")]
 map (foldr (\(num,ch) acc -> (num:fst acc, ch:snd acc)) ([],[])) $ inits [(x,y)|x<-[1,2], y<-"hi"] -- 같은 결과
 ```
-#####FlexibleContexts
+####FlexibleContexts
 이 확장을 쓰면 class constraints 에 다음처럼 하는 게 가능합니다.
 
     (Stream s u Char) =>
 
 즉, type variable 을 polymorphic 하게 사용하지 않고 특정 type 으로 지정할 수 있습니다. 여기서는 Char.
 
-#####RecursiveDo
+####RecursiveDo
 
-#####NoMonomorphismRestriction
+####NoMonomorphismRestriction
 먼저 MonomorphismRestriction 이 무엇인지 알아봅시다. 일단 Monomorphism 이란 Polymorphism 과 반대 개념입니다. 다음 코드를 파일로 저장한 다음 GHCi 에서 load 해 봅시다.
 ```haskell
 -- Mono.hs
@@ -575,7 +575,7 @@ NoMonomorphismRestriction 이 뜻하는 바는 가능한 한 최대로 polymorph
 plus = (+)
 ```
 
-#####DeriveFunctor, DeriveFoldable, DeriveTraversable
+####DeriveFunctor, DeriveFoldable, DeriveTraversable
 다음처럼 Tree 를 정의하고 이에 대해서 fmap 함수를 적용하려면 Tree 가 Fuctor 이어야 합니다. 즉, 직접 Tree 를 Functor 로 만들어주어야 하는데, 이 때 DeriveFunctor 확장을 쓰면 컴파일러가 이 작업을 대신 해 줍니다. 마찬가지로 fold 함수를 적용하려면 Tree 가 Foldable 이어야 하는데 이 때도 역시 DeriveFoldable 확장을 쓰면 컴파일러가 알아서 Tree 를 Foldable 로 만들어 줍니다. DeriveTraversable 도 마찬가지로 함수 traverse 를 적용할 수 있도록 해 줍니다.
 ```haskell
 {-# LANGUAGE DeriveFunctor, DeriveFoldable, DeriveTraversable #-}
@@ -588,7 +588,7 @@ traverse (\name -> putStrLn ("What's "++name++"'s occupation?") *> getLine) myT
 -- ...
 ```
 
-#####DeriveGeneric, DeriveAnyClass
+####DeriveGeneric, DeriveAnyClass
 위에서 사용한 DeriveFunctor, DeriveFoldable, DeriveTraversable 은 모두 base 라이브러리에 속한 Functor, Foldable, Traversable 의 Instance 를 손쉽게 만들수 있게 해주었습니다. 그렇다면 base 라이브러리에 속하지 않은 type class 의 Instance 를 이와 같은 방식으로 손쉽게 만들 수 있는 확장은 없을까요? DeriveGeneric 확장이 바로 이 같은 상황에서 쓸 수 있는 확장입니다. Data.Aeson 모듈을 이용하여 원하는 데이터를 JSON 형식으로 바꾸는 코드를 작성해보겠습니다.
 ```haskell
 -- Jedi.hs
@@ -624,10 +624,10 @@ jediAsJSON = encode (Jedi{age=900, name="Yoda", greeting="May the Lambda be with
 ...
 ```
 
-#####DeriveDataTypeable
+####DeriveDataTypeable
 
 
-#####GeneralizedNewtypeDeriving
+####GeneralizedNewtypeDeriving
 newtype 을 써서 만든 자료형은 deriving 방식을 사용하여 특정 type classe 의 instance 로 만들 수 없는데, GeneralizedNewtypeDeriving 확장은 그걸 할 수 있게 해줍니다.
 ```haskell
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -651,7 +651,7 @@ a = (Dollars 8) + (Dollars 9) -- Dollars 17
 - DefaultSignatures
 - ConstraintKinds
 
-#####RankNTypes
+####RankNTypes
 Haskell 에서의 type 은 기본적으로 Rank-1 type 입니다. 그렇다면 Rank-2 type 이란 것도 있는가? 있습니다. 이 Rank-N type 에 대해 알려면 우선 forall 예약어에 대해 알아야 합니다. 많이 쓰는 함수 length 의 typ 은 다음과 같습니다.
 ```haskell
 length:: [a] -> Int
@@ -716,7 +716,7 @@ length b -- 여기서의 length 함수의 type 은 [Double] -> Int 입니다.
 
 이처럼 parametric polymorphism 에서는 type variable 이 함수의 동작을 크게 규정합니다. 이를 Parametricity 라고 부르는데 예를 들어 f::[a] -> [a] 꼴인 함수 f 가 있을 때 이 함수가 하는 일을 추측해봅시다. 언뜻 매우 다양한 함수가 이 함수꼴 집합에 포함될 것이라고 생각할 수 있으나 사실은 정반대입니다. 모든 type 에 대하여 고려를 해야 하기 때문에 [a] -> [a] 꼴 함수집합에 속할 수 있는 함수는 매우 제한적입니다. 예를 들어 이 함수가 각 인자를 1 만큼 증가시키는 함수라고 추측해봅시다. 가능할까요? type variable 'a' 가 Int type 이면 가능합니다. 그런데 Bool type 이라면? 불가능한 일입니다. 따라서 [a] -> [a] 꼴 함수가 할 수 있는 일은 인자들의 순서를 재배열하거나, 인자들의 갯수를 늘리거나 또는 줄이는 일 정도입니다. 그 외에 혹시라도 뭐가 또 있을 수 있을까요?
 
-#####GADTs(Generalized Algebraic Data Types)
+####GADTs(Generalized Algebraic Data Types)
 다음과 같은 data type 을 정의한다고 해 봅시다.
 ```haskell
 data Expr = I Int
@@ -789,7 +789,7 @@ eq = Eq
 ```
 GADTs extension 을 통해 이러한 것이 가능합니다.
 
-#####KindSignatures, DataKinds
+####KindSignatures, DataKinds
 Haskell 은 type variable 의 kind 를 알아서 유추하지만 프로그래머가 직접 kind 를 명시해주는 것이 코드를 이해하기에 좋을 수도 있습니다. 마치 함수의 type 을 프로그래머가 직접 명시해 주는 것처럼. 다음 코드를 봅시다.
 ```haskell
 {-# LANGUAGE GADTs #-}
@@ -832,7 +832,7 @@ data Vec:: Natural -> * -> * where
   VNil:: Vec Zero a
   VCons:: a -> Vec n a -> Vec (Succ n) a
 ```
-#####PolyKinds
+####PolyKinds
 다음과 같은 코드가 있습니다.
 ```haskell
 data App f a = MkApp (f a)
@@ -852,7 +852,7 @@ App type 의 kind 를 확인해봅시다. ghci 에서 해 보겠습니다.
 
 이처럼 좀 더 구체적으로 kind 를 유추함을 알 수 있습니다.
 
-#####ScopedTypeVariables
+####ScopedTypeVariables
 이 확장은 "Lexically" scoped type variable 에 관한 것입니다. 다음 코드를 봅니다.
 ```haskell
 f :: [a] -> [a]
@@ -880,7 +880,7 @@ f (x:xs) = xs ++ [ x :: a ]
 
 참고로 이 확장에 대한 원 논문은 Simon Peyton Jones 가 작성한 [Lexically-scoped type variables](https://www.microsoft.com/en-us/research/publication/lexically-scoped-type-variables/) 입니다.
 
-#####ExistentialQuantification
+####ExistentialQuantification
 앞서 Predicate Logic 의 Universal Quantification 에 대해 잠시 다루었는데 Existential Quantification 은 다음과 같습니다. 예) 똑똑한 한국사람이 적어도 한명 있다: ∃x{Korean(x) ∧ Smart(x)}
 
 Universal Quantification 과 Existential Quantification 은 서로 상호 변환이 가능한데 이 때 다음 두 가지 추론 규칙을 사용합니다.
@@ -920,10 +920,10 @@ main = f heteroList
 
 Existential Quantification 은 그자체로는 특별한 쓰임새가 있지는 않으나 다른 기능들의 밑바탕에 깔리는 중요 개념입니다. 따라서 Existential type 에 대하여 이해를 할 필요가 있습니다.
 
-######Existential Types
+#####Existential Types
 Existential type 은 Abstract Data Type(이후 ADT) 을 위한 것입니다.
 
-#####TypeFamilies, TypeFamilyDependencies
+####TypeFamilies, TypeFamilyDependencies
 Type families 확장은 다음 네 가지 개념을 포함합니다.
 
 첫째, **Associated (Data) Type**
@@ -967,17 +967,122 @@ type instance Elem [e] = e
 type instance Elem BitSet = Char
 ```
 
+먼저 "Associated" 개념을 사용하는 예를 보겠습니다. 다음 코드는 포켓몬을 표현하고 있습니다. (https://www.schoolofhaskell.com/school/to-infinity-and-beyond/pick-of-the-week/type-families-and-pokemon 의 설명을 가져왔습니다)
+```haskell
+{-# LANGUAGE MultiParamTypeClasses #-}
+-- Names of Pokemon
+data Fire = Charmander | Charmeleon | Charizard deriving Show
+data Water = Squirtle | Wartortle | Blastoise deriving Show
+data Grass = Bulbasaur | Ivysaur | Venusaur deriving Show
+-- Moves of Pokemon
+data FireMove = Ember | FlameThrower | FireBlast deriving Show
+data WaterMove = Bubble | WaterGun deriving Show
+data GrassMove = VineWhip deriving Show
 
+class (Show pokemon, Show move) => Pokemon pokemon move where
+  pickMove :: pokemon -> move
 
-#####TypeInType
+instance Pokemon Fire FireMove where
+  pickMove Charmander = Ember
+  pickMove Charmeleon = FlameThrower
+  pickMove Charizard = FireBlast
+
+instance Pokemon Water WaterMove where
+  pickMove Squirtle = Bubble
+  pickMove _ = WaterGun
+
+instance Pokemon Grass GrassMove where
+  pickMove _ = VineWhip
+```
+위 코드를 ghci 에서 불러들인 다음 print (pickMove Charmander) 를 실행해보세요. Type error 가 납니다. 그 이유는 pickMove Charmander 코드를 보고 type checker 가 *Pokemon Fire a* 라는 instance 를 찾는데 해당 instance 가 없기 때문입니다. 그래서 이러한 type error 를 피하려면 다음처럼 type annotation 을 주어야 합니다.
+
+    > print (pickMove Charmander::FireMove)
+    Ember
+
+이렇게 하면 type checker 는 *Pokemon Fire FireMove* instance 를 찾게 되고 이것이 있기 때문에 type error 가 나지 않습니다. 즉, Fire 형 포켓몬은 FireMove type 의 move 를 사용한다는 것을 type 차원에서 표현하지 못하고 있기 때문에 이렇게 코드 작성시 type annotation 으로 알려주어야 하는 것이지요.
+
+이번에는 포켓몬간 결투를 코드에 추가해보겠습니다.
+```haskell
+import Data.Tuple (swap)
+{- 앞서 나온 코드를 이 부분에 붙입니다
+-}
+printBattle :: String -> String -> String -> String -> String -> IO ()
+printBattle pokemonOne moveOne pokemonTwo moveTwo winner = do
+  putStrLn $ pokemonOne ++ " used " ++ moveOne
+  putStrLn $ pokemonTwo ++ " used " ++ moveTwo
+  putStrLn $ "Winner is: " ++ winner ++ "\n"
+
+class (Pokemon pokemon move, Pokemon foe foeMove) => Battle pokemon move foe foeMove where
+  battle :: pokemon -> foe -> IO ()
+  battle pokemon foe = do
+    printBattle (show pokemon) (show move) (show foe) (show foeMove) (show pokemon)
+    where
+      move = pickMove pokemon
+      foeMove = pickMove foe
+
+instance Battle Water WaterMove Fire FireMove
+instance Battle Fire FireMove Water WaterMove where
+  battle a b = fmap swap $ battle b a
+
+instance Battle Grass GrassMove Water WaterMove
+instance Battle Water WaterMove Grass GrassMove where
+  battle a b = fmap swap $ battle b a
+
+instance Battle Fire FireMove Grass GrassMove
+instance Battle Grass GrassMove Fire FireMove where
+  battle a b = fmap swap $ battle b a
+```
+이 코드를 다시 ghci 에서 불러들인 다음 battle Squirtle Charmander 코드를 실행해봅니다. 이 역시 에러가 납니다. 앞서와 마찬가지로 battle Squirtle Charmander::IO (WaterMove, FireMove) 로 type annotation 을 주어서 호출하면 에러없이 동작합니다.
+
+    > battle Squirtle Charmander::IO (WaterMove, FireMove)
+    Squirtle used Bubble
+    Charmander used Ember
+    Winner is: Squirtle
+
+    (Bubble,Ember)
+
+이렇게 type annotation 을 주어야만 프로그램이 동작하는 이유는 type checker 가 Pokemon type 과 Pokemon move type 간의 관계를 알지 못하기 때문입니다. 따라서 Pokemon Fire WaterMove 와 같은 전혀 바라지 않은 instance 도 만들 수 있습니다. TypeFamilies 확장을 이용하여 이러한 것을 보완할 수 있습니다. 다음 코드를 보면 Pokemon typeclass 가 인자를 하나만 받게 되어 있고 대신 Move a 라는 associated type 이 들어가 있습니다. 즉, 이제부터는 FireMove 대신 Move Fire 를 사용하는 것입니다.
+```haskell
+{-# LANGUAGE TypeFamilies, FlexibleContexts #-}
+class (Show a, Show (Move a)) => Pokemon a where
+  data Move a :: *
+  pickMove :: a -> Move a
+```
+위의 type class 정의를 이용해서 코드를 다시 작성해 보면 다음과 같습니다.
+```haskell
+{-# LANGUAGE TypeFamilies, FlexibleContexts #-}
+class (Show a, Show (Move a)) => Pokemon a where
+  data Move a :: *
+  pickMove :: a -> Move a
+
+data Fire = Charmander | Charmeleon | Charizard deriving Show
+instance Pokemon Fire where
+  data Move Fire = Ember | FlameThrower | FireBlast deriving Show
+  pickMove Charmander = Ember
+  pickMove Charmeleon = FlameThrower
+  pickMove Charizard = FireBlast
+
+data Water = Squirtle | Wartortle | Blastoise deriving Show
+instance Pokemon Water where
+  data Move Water = Bubble | WaterGun deriving Show
+  pickMove Squirtle = Bubble
+  pickMove _ = WaterGun
+
+data Grass = Bulbasaur | Ivysaur | Venusaur deriving Show
+instance Pokemon Grass where
+  data Move Grass = VineWhip deriving Show
+  pickMove _ = VineWhip
+```
+
+####TypeInType
 
 참고로 이 확장에서 다루고 있는 kind system 에 대한 논문은 [System FC with Expilicit Kind Equality](http://www.seas.upenn.edu/~sweirich/papers/fckinds.pdf) 입니다.
 
-#####TypeOperators
+####TypeOperators
 
-#####LiberalTypeSynonyms
+####LiberalTypeSynonyms
 
-#####ConstraintKinds
+####ConstraintKinds
 
 ## 세 번째 시간
 - Standalone deriving
