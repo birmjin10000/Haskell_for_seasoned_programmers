@@ -1218,15 +1218,51 @@ type instance GCD (Succ d) Zero (Succ n) = GCD (Succ Zero) d n
     > :t c
     c :: Pointer (Succ (Succ Zero))
 
-이를 보면 add a b 의 결과값의 type 은 Pointer Two 로서 원래의 Pointer Eight 과는 정렬이 되지 않음음 type 수준에서 알 수 있습니다.
+이를 보면 add a b 의 결과값의 type 은 Pointer Two 로서 원래의 Pointer Eight 과는 정렬이 되지 않음을 type 수준에서 알 수 있습니다.
 
 ####TypeInType
 
 참고로 이 확장에서 다루고 있는 kind system 에 대한 논문은 [System FC with Expilicit Kind Equality](http://www.seas.upenn.edu/~sweirich/papers/fckinds.pdf) 입니다.
 
 ####TypeOperators
+이 확장을 사용하면 (+) 와 같은 operator 들을 다음 처럼 type constructor 로서 사용할 수 있습니다.
+```haskell
+{-# LANGUAGE TypeOperators #-}
+data a + b = Plus a b
+type Foo = Int + Bool
+```
+
+    > let a = Plus (9::Int) True
+    > :t a
+    a :: Int + Bool
 
 ####LiberalTypeSynonyms
+이 확장을 쓰면 Haskell 에서 type synonym 을 정의할 때 가하는 여러 가지 제약을 완화할 수 있습니다. 예를 들어 type synonym 은 partial application 이 안 되게 되어 있는데 이 확장을 쓰면 가능합니다. 아래 코드를 보면 Const 나 Id 는 모두 받아야 할 인자가 하나씩 모자란 상태로 myFunc의 type signature에서 쓰이고 있습니다.
+```haskell
+{-# LANGUAGE LiberalTypeSynonyms #-}
+import Data.Char(ord)
+
+type Const a b = a
+type Id a = a
+type NatApp f g i = f i -> g i
+
+myFunc :: NatApp Id (Const Int) Char
+--     ~  Id Char -> Const Int Char
+--     ~  Char    -> Int
+myFunc = ord
+```
+또한, forall 예약어를 type synonym 에 사용할 수 있습니다.
+```haskell
+{-# LANGUAGE LiberalTypeSynonyms, RankNTypes #-}
+type Discard a = forall b. Show b => a -> b -> (a, String)
+
+f :: Discard a
+f x y = (x, show y)
+
+g :: Discard Int -> (Int,String)    -- A rank-2 type
+g f = f 3 True
+```
+이렇게 유연한 type synonym 을 사용할 수 있는 이유는 LiberalTypeSynonyms 확장을 쓰면 type synonym 을 확장한 이후에야 type check 이 이루어지기 때문입니다.
 
 ####ConstraintKinds
 
