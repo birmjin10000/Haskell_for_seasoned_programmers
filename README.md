@@ -644,11 +644,12 @@ a = (Dollars 8) + (Dollars 9) -- Dollars 17
 - ScopedTypeVariables
 - ExistentialQuantification
     * Existential Types
+- TypeFamilies, TypeFamilyDependencies
 - TypeInType
 - TypeOperators
 - LiberalTypeSynonyms
-- TypeFamilies, TypeFamilyDependencies
 - DefaultSignatures
+- [ImplicitParams](####ImplicitParams)
 - ConstraintKinds
 
 ####RankNTypes
@@ -1263,6 +1264,10 @@ g :: Discard Int -> (Int,String)    -- A rank-2 type
 g f = f 3 True
 ```
 이렇게 유연한 type synonym 을 사용할 수 있는 이유는 LiberalTypeSynonyms 확장을 쓰면 type synonym 을 확장한 이후에야 type check 이 이루어지기 때문입니다.
+
+####DefaultSignatures
+
+####ImplicitParams
 
 ####ConstraintKinds
 
