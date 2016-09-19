@@ -287,24 +287,24 @@ Data.Sequence, Data.Vector, Data.Array 는 모두 순차적인 자료구조입�
 
 ## 첫 1시간
 다음의 ghc 컴파일러 확장을 배웁시다.
-- BinaryLiterals
-- OverloadedStrings
-- LambdaCase
-- BangPatterns
-- TupleSections
-- FlexibleInstances, TypeSynonymInstances
-- MultiParamTypeClasses
-- FunctionalDependencies
-- RecordWildCards
-- ParallelListComp
-- TransformListComp
-- FlexibleContexts
-- RecursiveDo
-- NoMonomorphismRestriction
-- DeriveFunctor, DeriveFoldable, DeriveTraversable
-- DeriveGeneric, DeriveAnyClass
-- DeriveDataTypeable
-- GeneralizedNewtypeDeriving
+- [BinaryLiterals](#binaryliterals)
+- [OverloadedStrings](#overloadedstrings)
+- [LambdaCase](#lambdacase)
+- [BangPatterns](#bangpatterns)
+- [TupleSections](#tuplesections)
+- [FlexibleInstances, TypeSynonymInstances](#flexibleinstances-typesynonyminstances)
+- [MultiParamTypeClasses](#multiparamtypeclasses)
+- [FunctionalDependencies](#functionaldependencies)
+- [RecordWildCards](#recordwildcards)
+- [ParallelListComp](#parallellistcomp)
+- [TransformListComp](#transformlistcomp)
+- [FlexibleContexts](#flexiblecontexts)
+- [RecursiveDo](#recursivedo)
+- [NoMonomorphismRestriction](#nomonomorphismrestriction)
+- [DeriveFunctor, DeriveFoldable, DeriveTraversable](#derivefunctor-derivefoldable-derivetraversable)
+- [DeriveGeneric, DeriveAnyClass](#derivegeneric-deriveanyclass)
+- [DeriveDataTypeable](#derivedatatypeable)
+- [GeneralizedNewtypeDeriving](#generalizednewtypederiving)
 
 GHC 컴파일러 확장은 꽤 종류가 많은데 그 중에는 여러 사람들이 대체로 사용을 권장하지 않는 것도 있습니다. 여기에서 소개하는 확장들도 꼭 사용을 권장하는 확장들만 있는것은 아닙니다. 그러나 소스 코드를 볼 때 비교적 자주 볼 수 있는 것들이기에 소개합니다.
 
@@ -426,7 +426,23 @@ instance Eq a => Collection [a] a where
 
 이 때 MultiParamTypeClasses 확장을 이용하면 여러 개의 type variable 을 받을 수 있는 type class 를 정의할 수 있습니다. 직접 해보시기 바랍니다.
 
-그런데 이렇게 정의했을 때 이 type class 정의에서 우리는 이미 알고 있지만 컴파일러는 모르는 정보가 생겼습니다. 그건 바로 Collection 의 type 이 해당 Collection 의 원소의 type 을 결정한다는 정보입니다. 무슨 말이냐하면 어떤 Collection 의 type 이 [a] 꼴이면 그것의 원소의 type 은 a 가 된다는 것입니다. 예를 하나 더 들어보면 Collection 의 type 이 Hashmap a 이면 그것의 원소의 type 은 a 가 되는 것이 자명합니다. 우리는 이 정보를 알고 있지만, 우리가 Collection type class 를 정의한 코드에서는 이것에 대한 정보가 없기 때문에 compiler 는 이에 대한 정보를 알지 못한 상황이 됩니다. 그 결과 Compiler 는 필요 이상으로 일반화된 type 의 함수를 추론하게 됩니다. 예를 들어 Collection 에 원소를 두 개 추가하는 다음과 같은 함수를 정의했다고 합시다.
+한편, MultiParamTypeClasses 확장은 반대로 type variable 이 전혀 없는 type class 도 정의할 수 있게 합니다. 다음 코드를 보면 Logger type class 는 type variable 이 전혀 없습니다. 이렇게 함으로써 사용자가 Logger 의 instance 를 단 하나만 만들 수 있게 할 수 있습니다.
+```haskell
+{-# LANGUAGE MultiParamTypeClasses #-}
+class Logger where
+  logMessage :: String -> IO ()
+
+type Present = String
+queueChristmasPresents :: Logger => [Present] -> IO ()
+queueChristmasPresents presents = do
+  mapM (logMessage . ("Queueing present for delivery: " ++)) presents
+  return ()
+
+instance Logger where
+  logMessage t = putStrLn ("[XMAS LOG]: " ++ t)
+```
+
+여러 개의 type variable 을 받게 하면 새로운 문제가 생기는데 type class 정의에서 우리는 알고 있지만 컴파일러는 모르는 정보가 생긴다는 점입니다. 그건 바로 Collection 의 type 이 해당 Collection 의 원소의 type 을 결정한다는 정보입니다. 무슨 말이냐하면 어떤 Collection 의 type 이 [a] 꼴이면 그것의 원소의 type 은 a 가 된다는 것입니다. 예를 하나 더 들어보면 Collection 의 type 이 Hashmap a 이면 그것의 원소의 type 은 a 가 되는 것이 자명합니다. 우리는 이렇듯 type 사이에 관계가 있다는 정보를 알고 있지만, 우리가 Collection type class 를 정의한 코드에는 이것에 대한 정보가 없기 때문에 compiler 는 이에 대한 정보를 알지 못한 상황이 됩니다. 그 결과 Compiler 는 필요 이상으로 일반화된 type 의 함수를 추론하게 됩니다. 예를 들어 Collection 에 원소를 두 개 추가하는 다음과 같은 함수를 정의했다고 합시다.
 ```haskell
 ins2 xs a b = insert (insert xs a) b
 ```
@@ -637,20 +653,20 @@ a = (Dollars 8) + (Dollars 9) -- Dollars 17
 
 ## 두 번째 시간
 다음의 ghc 컴파일러 확장을 배웁시다.
-- RankNTypes
-- GADTs(Generalised Algebraic Data Types)
-- KindSignatures, DataKinds
-- PolyKinds
-- ScopedTypeVariables
-- ExistentialQuantification
-    * Existential Types
-- TypeFamilies, TypeFamilyDependencies
-- TypeInType
-- TypeOperators
-- LiberalTypeSynonyms
-- DefaultSignatures
+- [RankNTypes](#rankntypes)
+- [GADTs(Generalised Algebraic Data Types)](#gadtsgeneralised-algebraic-data-types)
+- [KindSignatures, DataKinds](#kindsignatures-datakinds)
+- [PolyKinds](#polykinds)
+- [ScopedTypeVariables](#scopedtypevariables)
+- [ExistentialQuantification](#existentialquantification)
+    * [Existential Types](#existential-types)
+- [TypeFamilies, TypeFamilyDependencies](#typefamilies-typefamilydependencies)
+- [TypeInType](#typeintype)
+- [TypeOperators](#typeoperators)
+- [LiberalTypeSynonyms](#liberaltypesynonyms)
+- [DefaultSignatures](#defaultsignatures)
 - [ImplicitParams](#implicitparams)
-- ConstraintKinds
+- [ConstraintKinds](#constraintkinds)
 
 ####RankNTypes
 Haskell 에서의 type 은 기본적으로 Rank-1 type 입니다. 그렇다면 Rank-2 type 이란 것도 있는가? 있습니다. 이 Rank-N type 에 대해 알려면 우선 forall 예약어에 대해 알아야 합니다. 많이 쓰는 함수 length 의 typ 은 다음과 같습니다.
@@ -1266,8 +1282,33 @@ g f = f 3 True
 이렇게 유연한 type synonym 을 사용할 수 있는 이유는 LiberalTypeSynonyms 확장을 쓰면 type synonym 을 확장한 이후에야 type check 이 이루어지기 때문입니다.
 
 ####DefaultSignatures
+이 확장은 Generic Programming 과 관련되어 있는 확장으로 특정 instance 에 대한 default 구현을 허용해줍니다. 즉, 아래 코드에서 enum 함수의 type 은 [a] 이지만 만약에 Enum 의 instance 중에 하나가 instance (Generic a, GEnum (Rep a)) => Enum a 로 되어 있으면 해당 instance 는 default 예약어가 붙어 있는 enum 함수를 사용하게 되는 것입니다. 이 default 예약어가 붙어 있는 enum 함수의 type signature 가 [a] 가 아닐 수 있게 하는 것이 이 확장의 기능입니다.
+```haskell
+{-# LANGUAGE DefaultSignatures #-}
+import GHC.Generics
 
+class Enum a where
+  enum :: [a]
+  default enum :: (Generic a, GEnum (Rep a)) => [a]
+  enum = map to genum
+```
 ####ImplicitParams
+이 확장은 함수 인자를 묵시적으로 지정할 수 있게 합니다. 좀 더 구체적으로는 함수의 특정 인자를 callee 의 입장에서 binding 하지 않고 caller 의 입장에서 binding 하는 dynamic binding 에 관한 것입니다. 아래 코드에서 sort 함수 type signature 의 constraint 부분에서 물음표가 앞에 붙어 있는 ?cmp 부분이 바로 implicit parameter 입니다.
+```haskell
+{-# LANGUAGE ImplicitParam #-}
+import Data.List (sortBy)
+
+sort :: (?cmp :: a -> a -> Ordering) => [a] -> [a]
+sort = sortBy ?cmp
+least xs = head (sort xs)
+```
+위 코드를 ghci 에서 불러들인 다음 코드를 실행해보겠습니다.
+
+    >:set -XImplicitParams
+    > let ?cmp = compare in least [12,1,9,3]
+    1
+
+이처럼 ?cmp 인자를 callee(least 함수) 에서 직접 넘기는 것이 아니라 caller(위의 let 구문) 에서 넘기고 있습니다.
 
 ####ConstraintKinds
 
