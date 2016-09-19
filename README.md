@@ -649,7 +649,7 @@ a = (Dollars 8) + (Dollars 9) -- Dollars 17
 - TypeOperators
 - LiberalTypeSynonyms
 - DefaultSignatures
-- [ImplicitParams](####ImplicitParams)
+- [ImplicitParams](#ImplicitParams)
 - ConstraintKinds
 
 ####RankNTypes
