@@ -304,6 +304,7 @@ Data.Sequence, Data.Vector, Data.Array 는 모두 순차적인 자료구조입�
 - [DeriveFunctor, DeriveFoldable, DeriveTraversable](#derivefunctor-derivefoldable-derivetraversable)
 - [DeriveGeneric, DeriveAnyClass](#derivegeneric-deriveanyclass)
 - [DeriveDataTypeable](#derivedatatypeable)
+    * [Data.Typeable](#datatypeable)
 - [GeneralizedNewtypeDeriving](#generalizednewtypederiving)
 
 GHC 컴파일러 확장은 꽤 종류가 많은데 그 중에는 여러 사람들이 대체로 사용을 권장하지 않는 것도 있습니다. 여기에서 소개하는 확장들도 꼭 사용을 권장하는 확장들만 있는것은 아닙니다. 그러나 소스 코드를 볼 때 비교적 자주 볼 수 있는 것들이기에 소개합니다.
@@ -552,12 +553,47 @@ inits [y|x<-[1..3], y<-"cat"] -- 같은 결과를 얻습니다.
 map (foldr (\(num,ch) acc -> (num:fst acc, ch:snd acc)) ([],[])) $ inits [(x,y)|x<-[1,2], y<-"hi"] -- 같은 결과
 ```
 ####FlexibleContexts
-이 확장을 쓰면 class constraints 에 다음처럼 하는 게 가능합니다.
+이 확장의 대표적인 사용예는 다음의 class constraints 작성 규칙 완화입니다.
 
     (Stream s u Char) =>
 
 즉, type variable 을 polymorphic 하게 사용하지 않고 특정 type 으로 지정할 수 있습니다. 여기서는 Char.
 
+FlexibleContexts 확장은 Instance contexts, Class contexts 그리고 Typeclass constraints 를 작성할 때 더 유연하게 코드를 작성할 수 있게 합니다. 각각의 경우를 살펴보겠습니다.
+
+첫째, Instance contexts 입니다. Haskell 표준에서 Instance contexts 는 "C a" 꼴만 가능합니다. 여기서 C 는 임임의 typeclass 이름이고 a 는 type variable 입니다. 그런데 FlexibleContexts 확장을 쓰면 다음과 같이 훨씬 더 자유롭게 Instance 선언을 할 수 있습니다.
+```haskell
+instance C Int [a]          -- Multiple parameters
+instance Eq (S [a])         -- Structured type in head
+
+-- Repeated type variable in head
+instance C4 a a => C4 [a] [a]
+instance Stateful (ST s) (MutVar s)
+
+-- Head can consist of type variables only
+instance C a
+instance (Eq a, Show b) => C2 a b
+
+-- Non-type variables in context
+instance Show (s a) => Show (Sized s a)
+instance C2 Int a => C3 Bool [a]
+instance C2 Int a => C3 [a] b
+```
+
+둘째, Class contexts 입니다. 앞서 Instance contexts 작성에 대한 규칙을 완화한 것처럼 이번에는 Class contexts 작성에 관한 규칙을 완화하고 있습니다.
+```haskell
+class Functor (m k) => FiniteMap m k where
+  ...
+
+class (Monad m, Monad (t m)) => Transform t m where
+  lift :: m a -> (t m) a
+```
+
+셋째, type signature 작성시 typeclass constraints 작성에 관한 규칙을 완화합니다. 아래 코드를 보면 Eq [a] 처럼 type variable 자리에 list of type variable 이 들어가 있습니다. 또한 Ord (T a ()) 처럼 type constructor 가 들어있습니다.
+```haskell
+g :: Eq [a] => ...
+g :: Ord (T a ()) => ...
+```
 ####RecursiveDo
 Haskell 에서는 lazy evaluation 덕분에 다음과 같은 순환 구조의 재귀코드를 작성할 수 있습니다.
 ```haskell
@@ -670,7 +706,7 @@ jediAsJSON = encode (Jedi{age=900, name="Yoda", greeting="May the Lambda be with
 ```
 
 ####DeriveDataTypeable
-
+#####Data.Typeable
 
 ####GeneralizedNewtypeDeriving
 newtype 을 써서 만든 자료형은 deriving 방식을 사용하여 특정 type classe 의 instance 로 만들 수 없는데, GeneralizedNewtypeDeriving 확장은 그걸 할 수 있게 해줍니다.
