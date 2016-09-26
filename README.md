@@ -559,6 +559,35 @@ map (foldr (\(num,ch) acc -> (num:fst acc, ch:snd acc)) ([],[])) $ inits [(x,y)|
 즉, type variable 을 polymorphic 하게 사용하지 않고 특정 type 으로 지정할 수 있습니다. 여기서는 Char.
 
 ####RecursiveDo
+Haskell 에서는 lazy evaluation 덕분에 다음과 같은 순환 구조의 재귀코드를 작성할 수 있습니다.
+```haskell
+main = print $
+  let x = fst y
+      y = (3, x)
+  in snd y
+```
+그런데 do 블럭 안에서는 그렇게 할 수 없습니다. 예를 들어 다음 코드는 에러가 납니다.
+```haskell
+import Control.Monad.Identity
+
+main = print((
+  do x <- return $ fst y
+     y <- return (3, x)
+     return $ snd y)::Identity Integer)
+```
+
+    a.hs:4:24: error: Variable not in scope: y :: (Integer, b0)
+
+RecursiveDo 확장을 쓰면 do 블럭 안에서도 순환구조의 재귀 코드를 쓸 수 있습니다. 다음 코드에서 rec 은 RecursiveDo 확장 사용에 따른 예약어입니다.
+```haskell
+{-# LANGUAGE RecursiveDo #-}
+import Control.Monad.Identity
+
+main = print((
+  do rec x <- return $ fst y
+         y <- return (3, x)
+     return $ snd y)::Identity Integer)
+```
 
 ####NoMonomorphismRestriction
 먼저 MonomorphismRestriction 이 무엇인지 알아봅시다. 일단 Monomorphism 이란 Polymorphism 과 반대 개념입니다. 다음 코드를 파일로 저장한 다음 GHCi 에서 load 해 봅시다.
@@ -660,7 +689,9 @@ a = (Dollars 8) + (Dollars 9) -- Dollars 17
 - [ScopedTypeVariables](#scopedtypevariables)
 - [ExistentialQuantification](#existentialquantification)
     * [Existential Types](#existential-types)
-- [TypeFamilies, TypeFamilyDependencies](#typefamilies-typefamilydependencies)
+- [TypeFamilies](#typefamilies)
+- [TypeFamilyDependencies](#typefamilydependencies)
+    * [Injective Type Families](#injective-type-families)
 - [TypeInType](#typeintype)
 - [TypeOperators](#typeoperators)
 - [LiberalTypeSynonyms](#liberaltypesynonyms)
@@ -940,7 +971,7 @@ Existential Quantification 은 그자체로는 특별한 쓰임새가 있지는 
 #####Existential Types
 Existential type 은 Abstract Data Type(이후 ADT) 을 위한 것입니다.
 
-####TypeFamilies, TypeFamilyDependencies
+####TypeFamilies
 Type families 확장은 다음 네 가지 개념을 포함합니다.
 
 첫째, **Associated (Data) Type**
@@ -1237,6 +1268,12 @@ type instance GCD (Succ d) Zero (Succ n) = GCD (Succ Zero) d n
 
 이를 보면 add a b 의 결과값의 type 은 Pointer Two 로서 원래의 Pointer Eight 과는 정렬이 되지 않음을 type 수준에서 알 수 있습니다.
 
+####TypeFamilyDependencies
+이 확장은 Type Family 코드에서 Functional dependency 를 표현할 수 있게 해 줍니다.
+```haskell
+```
+#####Injective Type Families
+
 ####TypeInType
 
 참고로 이 확장에서 다루고 있는 kind system 에 대한 논문은 [System FC with Expilicit Kind Equality](http://www.seas.upenn.edu/~sweirich/papers/fckinds.pdf) 입니다.
@@ -1311,6 +1348,20 @@ least xs = head (sort xs)
 이처럼 ?cmp 인자를 callee(least 함수) 에서 직접 넘기는 것이 아니라 caller(위의 let 구문) 에서 넘기고 있습니다.
 
 ####ConstraintKinds
+constraints (=> 기호 왼쪽에 오는 부분) 는 매우 제한적인 문법을 가지고 있는데, 다음 세 가지의 경우만 허용 합니다.
+
+* 첫째, Show a 와 같은 class constraints.
+* 둘째, 앞서 다루었던 ?x::Int 와 같은 Implicit parameter.
+* 셋째, Type Family 에서 등장하는 a ~ Int 와 같은 Equality constraints.
+
+그런데 ConstraintKinds 확장을 쓰면 constraints 로 좀 더 다양한 것을 쓸 수 있습니다. 예를 들어 다음처럼 tuple 을 쓸 수 있습니다.
+
+```haskell
+{-# LANGUAGE ConstraintKinds #-}
+type Stringy a = (Read a, Show a)
+foo :: Stringy a => a -> (String, String -> a)
+foo x = (show x, read)
+```
 
 ## 세 번째 시간
 - Standalone deriving
