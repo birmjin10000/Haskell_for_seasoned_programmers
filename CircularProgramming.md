@@ -53,3 +53,27 @@ repMin' n (Fork m l r) =
 
 <img src="Circular_Structure.png">
 
+위 코드가 어떤 식으로 한 번의 Tree 순회로 최소값을 가진 Tree 를 구성하는지 확인해보려면 직접 코드를 전개해보면 됩니다. 다음 예를 살펴봅시다.
+
+    (n, t') = repMin' n (Fork 2 (Fork 1 Leaf Leaf) Leaf)
+            = (minimum [2, left_min, right_min], Fork n l' r')
+              where (left_min, l') = repMin' n (Fork 1 Leaf Leaf)
+                    (right_min, r') = repMin' n Leaf
+            = (minimum [2, left_min, right_min], Fork n l' r')
+              where (left_min, l') = (minimum [1, left_min2, right_min2], Fork n l'' r'')
+                                     where (left_min2, l'') = repMin' n Leaf
+                                           (right_min2, r'') = repMin' n Leaf
+                    (right_min, r') = (maxBound::Int, Leaf)
+            = (minimum [2, left_min, maxBound::Int], Fork n l' Leaf)
+              where (left_min, l') = (minimum [1, left_min2, right_min2], Fork n l'' r''{
+                                     where (left_min2, l'') = (maxBound::Int, Leaf)
+                                           (right_min2, r'') = (maxBound::Int, Leaf)
+            = (minimum [2, left_min, maxBound::Int], Fork n l' Leaf)
+              where (left_min, l') = (minimum [1, maxBound::Int, maxBound::Int], Fork n Leaf Leaf)
+            = (minimum [2, left_min, maxBound::Int, Fork n l' Leaf)
+              where (left_min, l') = (1, Fork n Leaf Leaf)
+            = (minimum [2, 1, maxbound::Int, Fork n (Fork n Leaf Leaf) Leaf)
+            = (1, Fork n (Fork n Leaf Leaf) Leaf)
+
+위 코드를 보면 결국 한 번의 Tree 순회를 통해 (n, t') = (1, Fork n (Fork n Leaf Leaf) Leaf) 결과를 얻습니다. Lazy evaluation 으로 인해 변수 n 의 값을 모르더라도 새로 만드는 Tree 를 thunk 상태로 계속 구성해 나갈 수 있습니다. 마지막에 변수 n 값을 알았을 때 비로소 새로운 Tree 를 evaluation 합니다. 이처럼 Lazy evalution 으로 인해 한 번의 Tree 순회에서 새로운 Tree 구성과 최소값 구하는 것을 함께 할 수 있습니다.
+
