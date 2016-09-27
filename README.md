@@ -706,6 +706,7 @@ jediAsJSON = encode (Jedi{age=900, name="Yoda", greeting="May the Lambda be with
 ```
 
 ####DeriveDataTypeable
+이 확장은 Dynamic typing 에 관한 것입니다. Haskell 은 Static typing 을 취하고 있지만 때때로 Dynamic typing 이 필요한 경우가 있을 때 이 확장을 사용합니다.
 #####Data.Typeable
 
 ####GeneralizedNewtypeDeriving
@@ -1305,12 +1306,13 @@ type instance GCD (Succ d) Zero (Succ n) = GCD (Succ Zero) d n
 이를 보면 add a b 의 결과값의 type 은 Pointer Two 로서 원래의 Pointer Eight 과는 정렬이 되지 않음을 type 수준에서 알 수 있습니다.
 
 ####TypeFamilyDependencies
-이 확장은 Type Family 코드에서 Functional dependency 를 표현할 수 있게 해 줍니다.
+이 확장은 GHC 8.0.1 부터 나오며 Type Family 코드에서 Functional dependency 를 표현할 수 있게 해 줍니다.
 ```haskell
 ```
 #####Injective Type Families
 
 ####TypeInType
+이 확장은 GHC 8.0.1 부터 나옵니다.
 
 참고로 이 확장에서 다루고 있는 kind system 에 대한 논문은 [System FC with Expilicit Kind Equality](http://www.seas.upenn.edu/~sweirich/papers/fckinds.pdf) 입니다.
 
@@ -1400,6 +1402,7 @@ foo x = (show x, read)
 ```
 
 ## 세 번째 시간
+- ApplicativeDo
 - Standalone deriving
 - Typed holes
 - REPA(REgular PArallel arrays)
