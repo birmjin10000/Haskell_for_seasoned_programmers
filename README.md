@@ -935,7 +935,7 @@ App type 의 kind 를 확인해봅시다. ghci 에서 해 보겠습니다.
     > :k App
     App :: (k -> *) -> k -> *
 
-이처럼 좀 더 구체적으로 kind 를 유추함을 알 수 있습니다.
+이처럼 좀 더 구체적으로 kind 를 유추함을 알 수 있으며 이로 인해 App 을 좀 더 다양한 kind 에서 쓸 수 있습니다.
 
 ####ScopedTypeVariables
 이 확장은 "Lexically" scoped type variable 에 관한 것입니다. 다음 코드를 봅니다.
@@ -1312,7 +1312,7 @@ type instance GCD (Succ d) Zero (Succ n) = GCD (Succ Zero) d n
 #####Injective Type Families
 
 ####TypeInType
-이 확장은 GHC 8.0.1 부터 나옵니다.
+이 확장은 GHC 8.0.1 부터 나옵니다. 앞서 나왔던 PolyKinds 확장에서 한 걸음 더 나아간 것으로 이 확장을 쓰면 type 과 kind 가 같다고 선언하는 것이 됩니다. 원래 GHC 에서는 type 과 kind 를 별개의 것으로 구분한
 
 참고로 이 확장에서 다루고 있는 kind system 에 대한 논문은 [System FC with Expilicit Kind Equality](http://www.seas.upenn.edu/~sweirich/papers/fckinds.pdf) 입니다.
 
@@ -1403,9 +1403,43 @@ foo x = (show x, read)
 
 ## 세 번째 시간
 - ApplicativeDo
-- Standalone deriving
+- StandaloneDeriving
 - Typed holes
 - REPA(REgular PArallel arrays)
+
+####ApplicativeDo
+####StandaloneDeriving
+다음처럼 자료형 만들 때 deriving 을 함께 하지 않고 별도로 하는 것을 말합니다.
+```haskell
+{-# LANGUAGE StandaloneDeriving #-}
+data Foo a = Bar a | Baz String
+deriving instance Eq a => Eq (Foo a)
+```
+그렇다면 이렇게 하는 것은 어떤 장점이 있을까요? 우선 다음처럼 특정 instance 만 콕 집어서 deriving 할 수 있습니다.
+```haskell
+{-# LANGUAGE StandaloneDeriving #-}
+data Foo a = Bar a | Baz String
+
+deriving instance Eq a => Eq (Foo [a])
+deriving instance Eq a => Eq (Foo (Maybe a))
+```
+위처럼 했을 때 (Foo [a]) 와 (Foo (Maybe a)) 는 Eq 의 instance 이지만 그 외의 것, 가령 (Foo (Int,Bool)) 는 Eq 의 instance 가 아닙니다.
+
+또, 한 가지 이점은 일반적인 deriving 을 할 수 없는 GADTs 나 그 밖의 특이한 data type 들에 대해서도 deriving 을 할 수 있다는 것입니다. 예를 들어 다음과 같은 GADTs 코드에는 derivivg (Show) 같은 코드를 바로 붙일 수가 없습니다.
+```haskell
+data T a where
+  T1 :: T Int
+  T2 :: T Bool
+```
+따라서 이 때는 StandaloneDeriving 확장을 통해 다음처럼 해야 합니다.
+```haskell
+{-# LANGUAGE StandaloneDeriving #-}
+data T a where
+  T1 :: T Int
+  T2 :: T Bool
+
+deriving instance Show (T a)
+```
 
 ## 네 번째 시간
 - DWARF based debugging
