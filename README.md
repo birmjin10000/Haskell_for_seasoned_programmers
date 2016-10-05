@@ -4,7 +4,7 @@
 
 Monad Transformers, Arrow, GADTs, Type Families, RankNTypes, Applicative Functor, QuickCheck, Parsec, ST monad, Zipper, Cabal, Haskell Tool Stack
 
-학습 내용은 7시간 동안 다룰 수 있게 짜여져 있습니다.
+학습 내용은 이틀 동안 다룰 수 있게 짜여져 있습니다.
 
 ## 사전 학습
 - stackage
@@ -281,11 +281,11 @@ Data.Sequence, Data.Vector, Data.Array 는 모두 순차적인 자료구조입�
 두개 합치기       |O(log(min(n1,n2)))|O(n1+n2)
 앞뒤에 하나 붙이기|O(1)              |O(n)
 
-숙제) 지뢰찾기 게임을 Haskell로 구현해 보세요. 다음 MineSweeper.hs 코드를 완성해서 제출하세요.
+숙제) 지뢰찾기 게임을 Haskell 로 구현해 보세요. 다음 MineSweeper.hs 코드를 완성해서 제출하세요.
 
-## 숙제 복기 시간
+## 숙제 복기 30분
 
-## 첫 1시간
+## 첫날 첫 100분
 다음의 ghc 컴파일러 확장을 배웁시다.
 - [BinaryLiterals](#binaryliterals)
 - [OverloadedStrings](#overloadedstrings)
@@ -717,7 +717,7 @@ newtype Dollars = Dollars Int deriving (Eq, Show, Num)
 a = (Dollars 8) + (Dollars 9) -- Dollars 17
 ```
 
-## 두 번째 시간
+## 첫날 두번째 100분
 다음의 ghc 컴파일러 확장을 배웁시다.
 - [RankNTypes](#rankntypes)
 - [GADTs(Generalised Algebraic Data Types)](#gadtsgeneralised-algebraic-data-types)
@@ -1401,13 +1401,29 @@ foo :: Stringy a => a -> (String, String -> a)
 foo x = (show x, read)
 ```
 
-## 세 번째 시간
+## 첫날 세번째 100분
 - ApplicativeDo
 - StandaloneDeriving
 - Typed holes
+- Monad Transformers
 - REPA(REgular PArallel arrays)
 
 ####ApplicativeDo
+Monad 의 경우 do notation 을 사용하여 bind 동작을 좀 더 이해하기 쉬운 형태로 코드를 작성할 수 있게 합니다. ApplicativeDo 확장은 do notation 을 Applicative 의 경우에도 사용할 수 있게 해 줍니다. 다음 코드에서 ZipList type 은 Applicative 이지만 Monad 는 아닙니다. 따라서 do notation 을 사용할 수 없습니다.
+```haskell
+import Control.Applicative
+pp = (*) <$> ZipList [1,2,3] <*> ZipList [7,8,9] -- ZipList {getZipList = [7,16,27]}
+```
+ApplicativeDo 확장을 쓰면 위 코드를 다음처럼 do notation 을 이용하여 좀 더 보기 쉬운 형태로 작성할 수 있습니다.
+```haskell
+{-# LANGUAGE ApplicativeDo #-}
+import Control.Applicative
+pp = do
+  a <- ZipList [1,2,3]
+  b <- ZipList [7,8,9]
+  return (a*b)
+```
+
 ####StandaloneDeriving
 다음처럼 자료형 만들 때 deriving 을 함께 하지 않고 별도로 하는 것을 말합니다.
 ```haskell
@@ -1441,14 +1457,14 @@ data T a where
 deriving instance Show (T a)
 ```
 
-## 네 번째 시간
+## 둘째날 첫 100분
 - DWARF based debugging
 - Template Haskell with Quasiquoting
 
-## 다섯 번째 시간
+## 둘째날 두번째 100분
 - Dependent Types
 
-## 여섯 번째 시간
+## 둘째날 세번째 100분
 
 ## 더 읽을 거리
 #### Zipper
