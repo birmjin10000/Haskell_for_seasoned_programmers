@@ -1404,17 +1404,17 @@ foo x = (show x, read)
 ## 첫날 세번째 100분
 - ApplicativeDo
 - StandaloneDeriving
-- Typed holes
+- Typed Holes
 - Monad Transformers
 - REPA(REgular PArallel arrays)
 
 ####ApplicativeDo
-Monad 의 경우 do notation 을 사용하여 bind 동작을 좀 더 이해하기 쉬운 형태로 코드를 작성할 수 있게 합니다. ApplicativeDo 확장은 do notation 을 Applicative 의 경우에도 사용할 수 있게 해 줍니다. 다음 코드에서 ZipList type 은 Applicative 이지만 Monad 는 아닙니다. 따라서 do notation 을 사용할 수 없습니다.
+Monad 의 경우 do notation 을 사용하여 bind 동작을 좀 더 이해하기 쉬운 형태로 코드를 작성할 수 있습니다. ApplicativeDo 확장을 쓰면 do notation 을 Applicative 의 경우에도 쓸 수 있습니다. 다음 코드에서 ZipList type 은 Applicative 이지만 Monad 는 아닙니다. 따라서 do notation 을 사용할 수 없습니다.
 ```haskell
 import Control.Applicative
 pp = (*) <$> ZipList [1,2,3] <*> ZipList [7,8,9] -- ZipList {getZipList = [7,16,27]}
 ```
-ApplicativeDo 확장을 쓰면 위 코드를 다음처럼 do notation 을 이용하여 좀 더 보기 쉬운 형태로 작성할 수 있습니다.
+하지만 ApplicativeDo 확장을 쓰면 위 코드를 다음처럼 do notation 을 이용하여 좀 더 보기 쉬운 형태로 작성할 수 있습니다.
 ```haskell
 {-# LANGUAGE ApplicativeDo #-}
 import Control.Applicative
@@ -1457,6 +1457,12 @@ data T a where
 deriving instance Show (T a)
 ```
 
+####Typed Holes
+
+####Monad Transformers
+
+####REPA(REgular PArallel arrays)
+
 ## 둘째날 첫 100분
 - DWARF based debugging
 - Template Haskell with Quasiquoting
@@ -1465,6 +1471,85 @@ deriving instance Show (T a)
 - Dependent Types
 
 ## 둘째날 세번째 100분
+- QuickCheck
+QuickCheck 은 '속성 기반 테스팅'(Property-based testing) 을 위한 라이브러리 입니다. 먼저 사용법을 살펴보겠습니다. 다음 revList 함수를 제대로 작성했는지 검증하는 것을 생각해봅시다.
+```haskell
+revList:: [a] -> [a]
+revList [] = []
+revList (x:xs) = revList xs ++ [x]
+```
+revList 함수의 속성 중 하나는 revList 함수를 두 번 연속 수행하면 원래의 입력과 같다는 것입니다. 이를 다음처럼 함수로서 표현할 수 있습니다. 함수 이름의 prop 은 물론 property 를 뜻하는 것으로 이처럼 QuickCheck 라이브러리 사용시 속성을 뜻하는 함수 이름을 지을 때 관행처럼 붙입니다.
+```haskell
+prop_ReverseTwiceIsSame::[a] -> Bool
+prop_ReverseTwiceIsSame xs = revList (revList xs) == xs
+```
+이제 ghci 에서 위 코드를 불러들인 다음 QuickCheck 의 기능을 사용해서 검증해보겠습니다.
+
+    > import Test.QuickCheck
+    > quickCheck prop_ReverseTwiceIsSame
+    +++ OK, passed 100 tests.
+
+무슨 일이 일어난 것일까요? 위에서 사용한 quickCheck 함수 대신 verboseCheck 함수를 써서 무슨 일이 일어났는지 짐작해보겠습니다.
+
+    > verboseCheck prop_ReverseTwiceIsSame
+    Passed:
+    []
+    Passed:
+    []
+    Passed:
+    [2,2]
+    Passed:
+    [3,-3,2]
+    ...
+    +++ OK, passed 100 tests.
+
+위 결과에서 보이듯이 QuickCheck 은 Int 형 요소를 가진 List 를 임의로 100 개 만들어서 이것들이 prop\_ReverseTwiceIsSame 함수를 만족하는지 검사합니다. 사람이 직접 Test input 을 만들지 않아도 되는 것입니다. 이번에는 다른 속성을 가지고 검증해 보겠습니다.
+```haskell
+prop_ReverseIsSame::[Int] -> Bool
+prop_ReverseIsSame xs = revList xs == xs
+```
+
+    > quickCheck prop_ReverseIsSame
+    *** Failed! Falsifiable (after 3 tests and 3 shrinks):
+    [0,1]
+
+위처럼 QuickCheck 은 prop\_ReverseIsSame 함수가 거짓값이 나올 때까지 임의의 Test input 을 만들어서 검증합니다. 위에서는 세번째 테스트만에 prop\_ReverseIsSame 속성이 거짓이 되는 입력값이 나왔으며 해당 입력값은 [0,1] 이라고 알려주고 있습니다.
+
+이처럼 QuickCheck 은 Test 입력을 무작위로 만들어서 검증하는 방법입니다. 그렇다면 QuickCheck 이 무작위로 Test 입력을 만드는 것은 어떻게 이루어지는 것일까요? QuickCheck 은 어떤 무작위로 만들어진 값 a 를 뜻하는 것으로 이것의 type 을 Gen a 로서 정의합니다. 그리고 이것의 기본 생성함수(generator 라고 합니다)를 arbitrary 라고 정하고 arbitrary 함수를 가진 type 들을 Arbitrary 라는 typeclass 로 묶기로 합니다.
+```haskell
+data Gen a
+
+class Arbitrary a where
+  arbitrary:: Gen a
+```
+이러한 생성자(generator)는 generate 라는 함수에 넘겨서 실제로 값을 만들어내도록 합니다.
+```haskell
+generate::Gen a -> IO a
+```
+
+    > import Test.QuickCheck
+    > generate arbitrary::IO Int
+    -4
+    > generate arbitrary::IO (Maybe Int)
+    Just (-2)
+    > generate arbitrary::IO [Maybe Bool]
+    [Just False,Just False,Just False,Just True,Nothing,Just True]
+    > generate arbitrary::IO (Int, Char)
+    (5,'`')
+    > generate arbitrary::IO (Either Int Double)
+    Left 25
+
+또한 QuickCheck 은 몇몇 자주 쓰일만한 생성자를 미리 정의해두고 있습니다. 가령 특정 범위에 있는 것들 중에서 무작위로 값을 뽑아내는 용도로 choose 를 제공합니다. 이를 이용해서 주사위 굴리기를 흉내내보겠습니다.
+```haskell
+choose:: Random a => (a, a) -> Gen a
+```
+
+    > import Test.QuickCheck
+    > let dice::Gen Int; dice = choose (1,6)
+    > generate dice
+    5
+
+
 
 ## 더 읽을 거리
 #### Zipper
