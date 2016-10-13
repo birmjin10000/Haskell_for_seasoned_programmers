@@ -1472,13 +1472,14 @@ deriving instance Show (T a)
 
 ## 둘째날 세번째 100분
 - QuickCheck
+
 QuickCheck 은 '속성 기반 테스팅'(Property-based testing) 을 위한 라이브러리 입니다. 먼저 사용법을 살펴보겠습니다. 다음 revList 함수를 제대로 작성했는지 검증하는 것을 생각해봅시다.
 ```haskell
 revList:: [a] -> [a]
 revList [] = []
 revList (x:xs) = revList xs ++ [x]
 ```
-revList 함수의 속성 중 하나는 revList 함수를 두 번 연속 수행하면 원래의 입력과 같다는 것입니다. 이를 다음처럼 함수로서 표현할 수 있습니다. 함수 이름의 prop 은 물론 property 를 뜻하는 것으로 이처럼 QuickCheck 라이브러리 사용시 속성을 뜻하는 함수 이름을 지을 때 관행처럼 붙입니다.
+revList 함수의 속성 중 하나는 revList 함수를 두 번 연속 수행하면 원래의 입력과 같다는 것입니다. 이를 다음처럼 함수로서 표현할 수 있습니다. 함수 이름 앞에 붙은 prop 은 property 를 뜻하는 것으로 이처럼 QuickCheck 라이브러리 사용시 속성을 뜻하는 함수 이름을 지을 때 관행처럼 붙입니다.
 ```haskell
 prop_ReverseTwiceIsSame::[a] -> Bool
 prop_ReverseTwiceIsSame xs = revList (revList xs) == xs
@@ -1644,7 +1645,36 @@ edges (Tree t ts) = length ts + sum(map edges ts)
     > quickCheck prop_OneMoreNodeThanEdges
     +++ OK, passed 100 tests.
 
+이제 Quick Check 의 내부를 좀 더 들여다보겠습니다. 먼저 quickCheck 함수의 type 을 보겠습니다.
+```haskell
+-- The set of types that can be tested
+class Testable prop
 
+quickCheck:: Testable prop => prop -> IO ()
+```
+이를 보면 quickCheck 이 받는 인자는 Testable 의 instance 이어야 합니다. 그런데 방금 검증한 prop\_OneMoreNodeThanEdges 속성은 Testable 의 instance 가 아니었습니다. 다시 확인해 보겠습니다.
+
+    > :t quickCheck
+    quickCheck :: Testable prop => prop -> IO ()
+    > :t prop_OneMoreNodeThanEdges
+    prop_OneMoreNodeThanEdges :: Tree a -> Bool
+    > quickCheck prop_OneMoreNodeThanEdges
+    +++ OK, passed 100 tests.
+
+type 을 보면 Tree a -> Bool 일뿐 Testable 의 instance 는 아닙니다. 그런데 어떻게 quickCheck 이 동작하는 것일까요? 그건 바로 다음 두 개의 Testable instance 를 통해서입니다.
+```haskell
+-- Satisfied by the result type
+instance Testable Bool
+
+-- Satisfied by the argument and result
+instance (Arbitrary a, Show a, Testable prop) => Testable (a -> prop)
+```
+quickCheck 함수에 우리가 검증하고자 하는 함수(속성을 뜻하는)를 인자로서 넘기는데, 이 때 인자로 넘어가는 함수자체의 인자는 Arbitrary 와 Show 의 instance 이어야 하고, 함수의 결과는 Testable 의 instance 이어야 합니다. 먼저 함수의 결과 type 에 대해 살펴보면, 우리가 속성을 표현하기 위해 만드는 모든 함수들은 모두 결과가 Bool type 인데 Bool type 은 위 코드에서 나오듯이 Testable 의 instance 로 QuickCheck 에서 정의하고 있으므로 조건을 만족합니다. 다음으로 함수의 인자들은 앞서 봤듯이 Arbitrary 의 instance 로 만드는 작업을 해주었고 deriving 을 통해 Show 의 instance 로 만들기도 했으므로 이 역시 조건을 만족합니다. Tree 의 다음 코드 부분을 보면 이를 확인할 수 있습니다.
+```haskell
+data Tree a = Tree a [Tree a] deriving (Show, ..)
+instance Arbitrary a => Arbitrary (Tree a) where ...
+```
+이렇게 quickCheck 함수에 위에서 언급한 조건을 만족하는 함수를 인자로서 넘기면 quickCheck 은 모든 필요한 type 의 임의의 값을 무작위로 자동으로 만들어냅니다. 그리고 나서 그 만들어진 값으로 우리가 만든 test(속성을 나타내는 함수)를 돌립니다. 그리고 나서 모든 경우에 test 를 통과하는지 확인합니다.
 
 ## 더 읽을 거리
 #### Zipper
