@@ -1515,6 +1515,18 @@ prop_ReverseIsSame xs = revList xs == xs
 
 위처럼 QuickCheck 은 prop\_ReverseIsSame 함수가 거짓값이 나올 때까지 임의의 Test input 을 만들어서 검증합니다. 위에서는 세번째 테스트만에 prop\_ReverseIsSame 속성이 거짓이 되는 입력값이 나왔으며 해당 입력값은 [0,1] 이라고 알려주고 있습니다.
 
+만약, 100 개의 Test 입력이 부족하다고 느낄 때는 다음처럼 quickCheckWith 를 써서 직접 Test 입력 갯수를 지정해줄 수 있습니다.
+
+    > quickCheckWith stdArgs {maxSuccess = 500} prop_ReverseTwiceIsSame
+    +++ OK, passed 500 tests.
+
+또한, 무작위로 만드는 List 각각의 최대 길이를 직접 지정할 수도 있습니다.
+
+    > verboseCheckWith stdArgs {maxSize = 6} prop_ReverseTwiceIsSame
+    ...
+
+이렇게 하면 길이가 6 이하인 임의의 List 들만 Test 입력으로 만들어집니다.
+
 이처럼 QuickCheck 은 Test 입력을 무작위로 만들어서 검증하는 방법입니다. 그렇다면 QuickCheck 이 무작위로 Test 입력을 만드는 것은 어떻게 이루어지는 것일까요? QuickCheck 은 어떤 무작위로 만들어진 값 a 를 뜻하는 것으로 이것의 type 을 Gen a 로서 정의합니다. 그리고 이것의 기본 생성함수(generator 라고 합니다)를 arbitrary 라고 정하고 arbitrary 함수를 가진 type 들을 Arbitrary 라는 typeclass 로 묶기로 합니다.
 ```haskell
 data Gen a
@@ -1548,6 +1560,89 @@ choose:: Random a => (a, a) -> Gen a
     > let dice::Gen Int; dice = choose (1,6)
     > generate dice
     5
+
+Bool 에 대한 무작위 값을 내놓을 때도 이 choose 생성자를 사용합니다. 다음 코드는 QuickCheck 이 정의하고 있는 Bool type 에 대한 Arbitrary instance 입니다.
+```haskell
+instance Arbitrary Bool where
+  arbitrary = choose (False,True)
+```
+
+무작위로 List 를 만드는 생성자를 만들 때도 이 choose 생성자를 사용합니다. 먼저 List 의 경우 길이라는 속성이 추가로 필요합니다. 무작위로 만드는 List 각각의 최대 길이를 지정해주어야 합니다. 그렇지 않으면 무한대 길이의 List 를 만들 수도 있으니까요. 그래서 다음의 sized 라는 것이 필요합니다.
+```haskell
+sized:: (Int -> Gen a) -> Gen a
+```
+이제 이를 이용해서 arbitraryList 라는 List 생성자를 만들어보겠습니다.
+```haskell
+arbitraryList:: Arbitrary a => Gen [a]
+arbitraryList =
+  sized $
+    \n -> do
+      k <- choose (0, n)
+      sequence [arbitrary | _ <- [1..k]]
+```
+위의 코드에서 n 변수는 quickQueck 을 호출할 때 QuickCheck 라이브러리 내부적으로 정한 기본값이 들어갑니다. 앞서 나왔던 maxSize 라는 환경값을 설정해주는 것이 바로 이 n 변수값을 설정하는 것입니다.
+
+이제 위 생성자를 통해 무작위로 List 를 만들어봅니다.
+
+    > generate arbitraryList:: IO [Int]
+    [-14,27,27,13,30,17,7,8,-1,26,9]
+    > generate arbitraryList:: IO [Bool]
+    [False,False]
+
+위에서 만든 arbitraryList 의 코드는 Test.QuickCheck 라이브러리에서 List 를 Arbitrary instance 로 만들 때 사용하는 코드와 같습니다.
+
+다음으로 우리가 직접 만든 자료형에 대한 생성자를 만들어보겠습니다. 다음 Rose tree 를 예로 들겠습니다.
+```haskell
+data Tree a = Tree a [Tree a] deriving (Show)
+```
+앞서 List 에 대한 generator 를 만들었던 것과 비슷하게 다음처럼 만들 수 있습니다.
+```haskell
+instance Arbitrary a => Arbitrary (Tree a) where
+  arbitrary = do
+    t <- arbitrary
+    ts <- arbitrary
+    return (Tree t ts)
+```
+그런데 이렇게 할 경우에는 List 의 경우와 마찬가지로 무한대 크기의 Tree 를 만들 수도 있게 되어 문제가 됩니다. 따라서 여기서도 sized 를 사용하여 다음처럼 작성해야 합니다.
+```haskell
+instance Arbitrary a => Arbitrary (Tree a) where
+  arbitrary = sized arbitrarySizedTree
+
+arbitrarySizedTree:: Arbitrary a => Int -> Gen (Tree a)
+arbitrarySizedTree m = do
+  t <- arbitrary
+  n <- choose (0, m `div` 2)
+  ts <- vectorOf n (arbitrarySizedTree (m `div` 4))
+  return (Tree t ts)
+```
+위 코드에서 vectorOf 는 choose 와 마찬가지로 편의를 위해 제공하는 생성자로서 다음과 같은 type 을 가집니다.
+```haskell
+vectorOf:: Int -> Gen a -> Gen [a]
+```
+그리고 m 을 2 와 4 로 나누는 코드가 있는 것은 Tree 크기가 지나치게 커지는 것을 막으려는 목적이며 다른 뜻이 있는 것은 아닙니다. 이제 이 생성자를 이용하여 무작위로 Tree 를 만들어보겠습니다.
+
+    > generate arbitrary::IO (Tree Int)
+    Tree (-6) [Tree 30 [Tree (-30) [],Tree 0 [],Tree 28 []],Tree 14 []]
+    > generate arbitrary:: IO (Tree Char)
+    Tree ';' [Tree '\159' [Tree '0' [],Tree 'P' []]]
+
+이제 Tree 의 속성을 검증해보겠습니다. 우리가 만든 Rose Tree 의 속성 중 하나는 Node의 수가 Edge 의 수보다 하나 더 많다는 것입니다. 따라서 다음과 같은 속성을 만들어볼 수 있습니다.
+```haskell
+prop_OneMoreNodeThanEdges:: Tree a -> Bool
+prop_OneMoreNodeThanEdges tree = nodes tree == edges tree + 1
+
+nodes:: Tree a -> Int
+nodes (Tree t []) = 1
+nodes (Tree t ts) = 1 + sum(map nodes ts)
+
+edges:: Tree a -> Int
+edges (Tree t []) = 0
+edges (Tree t ts) = length ts + sum(map edges ts)
+```
+이제 prop\_OneMoreNodeThanEdges 속성을 quickCheck 으로 테스트해 보면 다음처럼 통과함을 볼 수 있습니다.
+
+    > quickCheck prop_OneMoreNodeThanEdges
+    +++ OK, passed 100 tests.
 
 
 
