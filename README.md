@@ -1472,7 +1472,9 @@ deriving instance Show (T a)
 
 ## 둘째날 세번째 100분
 - QuickCheck
+  * shrinking
 
+####QuickCheck
 QuickCheck 은 '속성 기반 테스팅'(Property-based testing) 을 위한 라이브러리 입니다. 먼저 사용법을 살펴보겠습니다. 다음 revList 함수를 제대로 작성했는지 검증하는 것을 생각해봅시다.
 ```haskell
 revList:: [a] -> [a]
@@ -1669,12 +1671,71 @@ instance Testable Bool
 -- Satisfied by the argument and result
 instance (Arbitrary a, Show a, Testable prop) => Testable (a -> prop)
 ```
-quickCheck 함수에 우리가 검증하고자 하는 함수(속성을 뜻하는)를 인자로서 넘기는데, 이 때 인자로 넘어가는 함수자체의 인자는 Arbitrary 와 Show 의 instance 이어야 하고, 함수의 결과는 Testable 의 instance 이어야 합니다. 먼저 함수의 결과 type 에 대해 살펴보면, 우리가 속성을 표현하기 위해 만드는 모든 함수들은 모두 결과가 Bool type 인데 Bool type 은 위 코드에서 나오듯이 Testable 의 instance 로 QuickCheck 에서 정의하고 있으므로 조건을 만족합니다. 다음으로 함수의 인자들은 앞서 봤듯이 Arbitrary 의 instance 로 만드는 작업을 해주었고 deriving 을 통해 Show 의 instance 로 만들기도 했으므로 이 역시 조건을 만족합니다. Tree 의 다음 코드 부분을 보면 이를 확인할 수 있습니다.
+quickCheck 함수에 우리가 검증하고자 하는 함수(속성을 뜻하는)를 인자로서 넘기는데, 이 때 인자로 넘어가는 함수자체의 인자는 Arbitrary 와 Show 의 instance 이어야 하고, 함수의 결과는 Testable 의 instance 이어야 합니다. 먼저 함수의 결과 type 에 대해 살펴보면, 우리가 속성을 표현하기 위해 만드는 함수들은 모두 결과가 Bool type 인데 Bool type 은 위 코드에서 나오듯이 Testable 의 instance 로 QuickCheck 에서 정의하고 있으므로 조건을 만족합니다. 다음으로 함수의 인자들은 앞서 봤듯이 Arbitrary 의 instance 로 만드는 작업을 해주었고 deriving 을 통해 Show 의 instance 로 만들기도 했으므로 이 역시 조건을 만족합니다. Tree 의 다음 코드 부분을 보면 이를 확인할 수 있습니다.
 ```haskell
 data Tree a = Tree a [Tree a] deriving (Show, ..)
 instance Arbitrary a => Arbitrary (Tree a) where ...
 ```
 이렇게 quickCheck 함수에 위에서 언급한 조건을 만족하는 함수를 인자로서 넘기면 quickCheck 은 모든 필요한 type 의 임의의 값을 무작위로 자동으로 만들어냅니다. 그리고 나서 그 만들어진 값으로 우리가 만든 test(속성을 나타내는 함수)를 돌립니다. 그리고 나서 모든 경우에 test 를 통과하는지 확인합니다.
+
+예제를 하나 더 해 보겠습니다. Char type 은 Unicode 를 나타냅니다.
+
+    > let a::Char; a = '\x10FFFF'
+    > a
+    '\1114111'
+
+Char 하나(code point)를 UTF-16 으로 인코딩하는 함수를 작성하고 이를 검증해 보겠습니다. 참고로 UTF-16 인코딩은 Unicode 문자 하나를 하나 또는 두 개의 16비트 code unit 으로 바꿉니다. 0x10000 이하의 code point 는 1개의 16비트 code unit 으로, 0x10000 이상의 code point 는 2개의 16비트 code unit 으로.
+```haskell
+import Data.Word (Word16)
+import Data.Char (ord)
+import Data.Bits ((.&.), shiftR)
+
+encodeUTF16:: Char -> [Word16]
+encodeUTF16 c
+  | w < 0x10000 = [fromIntegral w] -- single code unit
+  | otherwise = [fromIntegral a, fromIntegral b] -- two code unit
+   where w = ord c
+         a = ((w - 0x10000) `shiftR` 10) + 0xD800
+         b = (w .&. 0x3FF) + 0xDC00
+```
+그리고 나서 이 함수의 속성을 하나 생각해보겠습니다. 이번에는 잘못된 속성을 하나 만들어서 테스트해보겠습니다.
+```haskell
+prop_encodeOne c = length (encodeUTF16 c) == 1
+```
+인코딩된 결과의 길이는 1 또는 2 니까 위의 속성은 테스트를 통과하지 못해야 합니다. 그런데 실제 해 보면 다음처럼 통과합니다.
+
+    > import Test.QuickCheck
+    > quickCheck prop_encodeOne
+    +++ OK, passed 100 tests.
+
+이는 QuickCheck 에서 Char type 의 Arbitrary instance 가 ASCII 값만 만들게 되어 있기 때문이다. 다음 코드가 QuickCheck 소스에서 해당 부분입니다.
+```haskell
+instance Arbitrary Char where
+  arbitrary = chr `fmap` oneof [choose (0,127), choose (0,255)]
+```
+따라서 위에서 실패할 것으로 기대했던 속성이 성공했던 것입니다. 참고로 이렇게 Char type 의 무작위 생성값이 ASCII 값만 나오게 되어 있는 것은 일부러 그렇게 한 것입니다.
+
+따라서 원래 생각했던 바를 검증해 보려면 직접 별도의 type 을 정의해야 합니다. 다음 코드처럼.
+```haskell
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+import Test.QuickCheck
+import System.Random
+
+newtype BigChar = Big Char deriving (Eq, Show, Random)
+
+instance Arbitrary BigChar where
+  arbitrary = choose (Big '0',Big '\x10FFFF')
+
+prop_encodeOne (Big c) = length (encodeUTF16 c) == 1
+```
+그리고 나서 다시 quickCheck 을 돌려보면 다음처럼 테스트를 통과하지 못함을 확인할 수 있습니다.
+
+    > quickCheck prop_encodeOne
+    *** Failed! Falsifiable (after 1 test):
+    Big '\89420'
+
+
+#####shrinking
 
 ## 더 읽을 거리
 #### Zipper
