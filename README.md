@@ -1880,6 +1880,24 @@ prop_ins_ord4 x =
     4% 2
     ...
 
+연습문제) 다음과 같은 이진 Tree 에 대한 Arbitrary instance 가 있습니다. shrink 함수를 구현해보세요.
+```haskell
+import Control.Monad (liftM3)
+import Test.QuickCheck
+
+data Tree a = Leaf | Fork a (Tree a) (Tree a) deriving (Show)
+
+instance (Arbitrary a) => Arbitrary (Tree a) where
+  arbitrary = sized arbitrarySizedTree
+  shrink = undefined
+
+arbitrarySizedTree:: (Arbitrary a) => Int -> Gen (Tree a)
+arbitrarySizedTree 0 = return Leaf
+arbitrarySizedTree n =
+  frequency [(1, return Leaf), (3, liftM3 Fork arbitrary subtree subtree)]
+  where subtree = arbitrarySizedTree (n `div` 2)
+```
+
 ## 더 읽을 거리
 #### Zipper
 #### Finger trees
