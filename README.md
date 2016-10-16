@@ -1554,19 +1554,29 @@ generate::Gen a -> IO a
     > generate arbitrary::IO (Either Int Double)
     Left 25
 
-또한 QuickCheck 은 생성자를 편하게 쓸 수 있도록 몇 가지 조합함수를 제공합니다. 가령 특정 범위에 있는 것들 중에서 무작위로 값을 뽑아내는 용도로 choose 를 제공합니다. 이를 이용해서 주사위 굴리기를 흉내내보겠습니다.
+또한 QuickCheck 은 생성자를 편하게 쓸 수 있도록 몇 가지 조합함수를 제공합니다. 특정 범위에 있는 것들 중에서 무작위로 값을 뽑아내는 choose, List 에서 무작위로 값을 뽑아내는 elements 가 있습니다.
 ```haskell
 choose:: Random a => (a, a) -> Gen a
+elements:: [a] -> Gen a
 ```
 
     > import Test.QuickCheck
     > let dice::Gen Int; dice = choose (1,6)
     > generate dice
     5
+    > let fruits = elements ["apple", "orange", "banana"]
+    > generate fruits
+    "apple"
 
-만약에 특정 범위의 값을 좀 더 높은 비율로 만들고 싶을 때는 frequency 를 이용합니다. 아래에서는 3:1 비율로 0~50 사이의 임의의 수와 51~100 사이의 임의의 수를 만듭니다.
+그 밖에 oneof 와 frequency 도 있습니다.
+```haskell
+oneof:: [Gen a] -> Gen a
+frequency:: [(Int,Gen a)] -> Gen a
+```
+oneof 는 나열된 여러 개 중에서 하나를 무작위로 뽑는 것이고 frequency 는 가중치를 주어서 뽑는 것입니다.  아래에서 biased 생성자는 3:1 비율로 0~50 사이의 임의의 수와 51~100 사이의 임의의 수를 만듭니다.
 
     > let biased::Gen Int; biased = frequency [(3, choose (0,50)), (1, choose (51,100))]
+    > let uniform::Gen Int; uniform = oneof [elements [1,2,3], elements [7,8,9]]
 
 Bool 에 대한 무작위 값을 내놓을 때도 choose 조합함수를 이용합니다. 다음 코드는 QuickCheck 이 정의하고 있는 Bool type 에 대한 Arbitrary instance 입니다.
 ```haskell
@@ -1796,9 +1806,9 @@ prop_encodeOne5 = do
   Big c <- arbitrary `suchThat` (< Big '\x10000')
   return $ length (encodeChar c) == 1
 ```
-위 코드에서 (==>) 와 suchThat 은 무작위 생성값을 거르는 역할을 합니다. 테스트입력을 만들어낼 때 prop\_encodeOne3 처럼 처음부터 적합한 값을 만드는 방법도 있지만 prop\_encodeOne4 & 5 처럼 (==>) 와suchThat 을 이용하여 적합한 값만 걸러낼 수도 있습니다. 이는 선택의 문제이지만 보통 처음부터 적합한 것을 만드는 것이 좀 더 효율적입니다. 그리고 적합한 값을 걸러내는 방식을 택할 경우 QuickCheck 이 우리가 원하는 만큼 충분히 테스트하지 못하게 됩니다. 따라서 되도록 처음부터 적합한 값을 만들도록 하는 것을 권장합니다.
+위 코드에서 (==>) 와 suchThat 은 무작위 생성값을 거르는 역할을 합니다. 테스트입력을 만들어낼 때 prop\_encodeOne3 처럼 처음부터 적합한 값을 만드는 방법도 있지만 prop\_encodeOne4 & 5 처럼 (==>) 와 suchThat 을 이용하여 적합한 값만 거를 수도 있습니다. 이는 선택의 문제이지만 보통 처음부터 적합한 것을 만드는 것이 좀 더 효율적입니다. 그리고 적합한 값을 거르는 방식을 택할 경우 QuickCheck 이 우리가 원하는 만큼 충분히 테스트하지 못하게 됩니다. 따라서 되도록 처음부터 적합한 값을 만들도록 하는 것을 권장합니다.
 
-List 에 요소를 하나 삽입하는 함수를 검증하는 코드를 살펴봅시다. 참고로 아래 코드에서 types = x::Int 부분의 types 는 예약어가 아니라 그냥 변수 이름으로서 실제는 사용하지 않는 dummy variable 이며 오로지 x::Int 라는 type signature 를 주기 위해서만 존재합니다. 예약어가 아니므로 types 라는 이름 대신 abc 같은 이름을 써도 상관없습니다.
+List 에 요소를 하나 삽입하는 함수를 검증하는 코드를 살펴봅시다. 참고로 아래 코드에서 types = x::Int 부분의 types 는 예약어가 아니라 그냥 변수 이름으로서 실제로는 사용하지 않는 dummy variable 이며 오로지 x::Int 라는 type signature 를 주기 위해서만 존재합니다. 예약어가 아니므로 types 라는 이름 대신 abc 같은 이름을 써도 상관없습니다.
 ```haskell
 ascending::Ord a => [a] -> Bool
 ascending (x:x':xs) = x <= x' && ascending (x':xs)
