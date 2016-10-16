@@ -1737,11 +1737,11 @@ newtype BigChar = Big Char deriving (Eq, Show, Random)
 instance Arbitrary BigChar where
   arbitrary = choose (Big '0',Big '\x10FFFF')
 
-prop_encodeOne (Big c) = length (encodeUTF16 c) == 1
+prop_encodeOne2 (Big c) = length (encodeUTF16 c) == 1
 ```
 그리고 나서 다시 quickCheck 을 돌려보면 다음처럼 테스트를 통과하지 못함을 확인할 수 있으며 어떤 입력에 대하여 실패하는지도 알려줍니다.
 
-    > quickCheck prop_encodeOne
+    > quickCheck prop_encodeOne2
     *** Failed! Falsifiable (after 1 test):
     Big '\89420'
 
@@ -1759,7 +1759,7 @@ shrinkChar c = map (chr.floor) (lst c)
 ```
 위 코드에서 BigChar 에 대한 shrink 함수는 code point 하나를 받아서 그것보다 일정 크기로 작은 code point 들을 세 개 만들고 있습니다. 그러면 quickCheck 이 이렇게 만든 세 개의 code point 에 대해서 테스트를 진행하여 테스트가 또 다시 실패하면 다시 해당 code point 에 대하여 shrinking 을 수행합니다. 이러한 과정을 반복하여 거치면서 테스트가 실패하는 좀 더 작은 code point 를 찾는 것입니다. Shrinking 기능을 추가하고 나서 quickCheck 을 돌리면 다음과 같이 shrinking 이 수행된 결과를 볼 수 있습니다.
 
-    > quickCheck prop_encodeOne3
+    > quickCheck prop_encodeOne2
     *** Failed! Falsifiable (after 1 test and 5 shrinks):
     Big '\70119'
 
@@ -1781,6 +1781,94 @@ instance Arbitrary a => Arbitrary (Tree a) where
       [t' | t' <- ts] ++
       init [Tree t ts'| ts' <- subsequences ts]
 ```
+마지막으로 유용한 몇 가지 기능을 더 살펴보겠습니다. 먼저 다음 코드를 보십시요.
+```haskell
+import Test.QuickCheck((==>), suchThat)
+
+prop_encodeOne3 = do
+  c <- choose ('\0', '\xFFFF')
+  return $ length (encodeChar c) == 1
+
+prop_encodeOne4 (Big c) =
+  (c < '\x10000') ==> length (encodeChar c) == 1
+
+prop_encodeOne5 = do
+  Big c <- arbitrary `suchThat` (< Big '\x10000')
+  return $ length (encodeChar c) == 1
+```
+위 코드에서 (==>) 와 suchThat 은 무작위 생성값을 거르는 역할을 합니다. 테스트입력을 만들어낼 때 prop\_encodeOne3 처럼 처음부터 적합한 값을 만드는 방법도 있지만 prop\_encodeOne4 & 5 처럼 (==>) 와suchThat 을 이용하여 적합한 값만 걸러낼 수도 있습니다. 이는 선택의 문제이지만 보통 처음부터 적합한 것을 만드는 것이 좀 더 효율적입니다. 그리고 적합한 값을 걸러내는 방식을 택할 경우 QuickCheck 이 우리가 원하는 만큼 충분히 테스트하지 못하게 됩니다. 따라서 되도록 처음부터 적합한 값을 만들도록 하는 것을 권장합니다.
+
+List 에 요소를 하나 삽입하는 함수를 검증하는 코드를 살펴봅시다. 참고로 아래 코드에서 types = x::Int 부분의 types 는 예약어가 아니라 그냥 변수 이름으로서 실제는 사용하지 않는 dummy variable 이며 오로지 x::Int 라는 type signature 를 주기 위해서만 존재합니다. 예약어가 아니므로 types 라는 이름 대신 abc 같은 이름을 써도 상관없습니다.
+```haskell
+ascending::Ord a => [a] -> Bool
+ascending (x:x':xs) = x <= x' && ascending (x':xs)
+ascending _ = True
+
+insert:: Ord a => a -> [a] -> [a]
+insert x [] = [x]
+insert x (y:ys)
+  | x < y = x:y:ys
+  | otherwise = y:insert x ys
+
+prop_ins_ord x xs = ascending xs ==> ascending (insert x xs) where types = x::Int
+```
+이를 quickCheck 함수로 실행해 보면 다음과 같은 결과를 볼 수 있습니다.
+
+    > quickCheck prop_ins_ord
+    *** Gave up! Passed only 69 tests.
+
+이것은 앞서 말했듯이 (==>) 을 써서 적합한 입력값만 받게 했을 때 나오는 결과로 QuickCheck 이 69 개의 test 만 수행했고 나머지 31 개는 (==>) 에 걸린 조건에 맞지 않아서 수행하지 못했다는 것을 알려줍니다.
+
+그렇다면 실제로 수행된 테스트들은 어떤 것들이었는지 확인해보고 싶을 수 있습니다. 이 때는 일종의 통계기능을 사용할 수 있습니다. collect 함수를 쓰면 확인하고자 하는 것(여기서는 입력값의 길이)을 기준으로 대한 입력값의 분포를 알수 있습니다.
+```haskell
+prop_ins_ord2 x xs = collect (length xs) $ prop_ins_ord x xs
+```
+    > quickCheck prop_ins_ord2
+    *** Gave up! Passed only 65 tests:
+    35% 1
+    33% 0
+    18% 2
+     7% 3
+     3% 5
+     1% 6
+
+classify 함수를 이용하면 딱 확인하고자 하는 것만 짧게 알려줍니다.
+```haskell
+prop_ins_ord3 x xs = clasify (length xs < 2) "too small!" $ prop_ins_ord x xs
+```
+    > quickCheck prop_ins_ord3
+    *** Gave up! Passed only 82 tests (85% too small!).
+
+이처럼 적합한 값만 거르도록 했을 때는 테스트 수행이 생각보다 만족스럽지 못할 수 있습니다. 그렇다면 처음부터 적합한 값을 만들도록 하는 방법은 뭐가 있을까요? Arbitrary instance 에 있는 기본 생성자를 쓰지 않고 생성자를 따로 명시하면 되겠지요. 이를 위해 forAll 조합함수가 있습니다.
+
+forAll 조합함수는 forAll "generator" $ \pattern -> "property to test" 꼴로 사용합니다. 다음 Fibonacci 수 생성기를 검증하는 코드에서 인덱스를 500 이하 양의 정수로 제한하도록 smallNonNegativeIntegers 라는 생성자를 명시적으로 넘기고 있습니다.
+```haskell
+fibs = 0 : 1 : zipWith (+) fibs (tail fibs)
+
+smallNonNegativeIntegers = choose (0, 500)
+
+prop_Fibonacci =
+  forAll smallNonNegativeIntegers $ \n ->
+    let x = fibs !! (n)
+        y = fibs !! (n+1)
+        z = fibs !! (n+2)
+    in x + y == z
+```
+좀 전에 List 삽입하는 함수 검증도 이를 이용하면 다음처럼 좀 더 바람직하게 할 수 있습니다. 아래코드에서 orderedList 생성자는 QuickCheck 라이브러리에서 제공하는 생성자입니다.
+```haskell
+prop_ins_ord4 x =
+  forAll orderedList $ \xs ->
+    collect (length xs) $ ascending (insert x xs)
+      where types = x:: Int
+```
+
+    > quickCheck prop_ins_ord4
+    +++ OK, passed 100 tests:
+    5% 6
+    5% 0
+    4% 4
+    4% 2
+    ...
 
 ## 더 읽을 거리
 #### Zipper
