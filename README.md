@@ -1554,7 +1554,7 @@ generate::Gen a -> IO a
     > generate arbitrary::IO (Either Int Double)
     Left 25
 
-또한 QuickCheck 은 몇몇 자주 쓰일만한 생성자를 미리 정의해두고 있습니다. 가령 특정 범위에 있는 것들 중에서 무작위로 값을 뽑아내는 용도로 choose 를 제공합니다. 이를 이용해서 주사위 굴리기를 흉내내보겠습니다.
+또한 QuickCheck 은 생성자를 편하게 쓸 수 있도록 몇 가지 조합함수를 제공합니다. 가령 특정 범위에 있는 것들 중에서 무작위로 값을 뽑아내는 용도로 choose 를 제공합니다. 이를 이용해서 주사위 굴리기를 흉내내보겠습니다.
 ```haskell
 choose:: Random a => (a, a) -> Gen a
 ```
@@ -1564,13 +1564,17 @@ choose:: Random a => (a, a) -> Gen a
     > generate dice
     5
 
-Bool 에 대한 무작위 값을 내놓을 때도 이 choose 생성자를 사용합니다. 다음 코드는 QuickCheck 이 정의하고 있는 Bool type 에 대한 Arbitrary instance 입니다.
+만약에 특정 범위의 값을 좀 더 높은 비율로 만들고 싶을 때는 frequency 를 이용합니다. 아래에서는 3:1 비율로 0~50 사이의 임의의 수와 51~100 사이의 임의의 수를 만듭니다.
+
+    > let biased::Gen Int; biased = frequency [(3, choose (0,50)), (1, choose (51,100))]
+
+Bool 에 대한 무작위 값을 내놓을 때도 choose 조합함수를 이용합니다. 다음 코드는 QuickCheck 이 정의하고 있는 Bool type 에 대한 Arbitrary instance 입니다.
 ```haskell
 instance Arbitrary Bool where
   arbitrary = choose (False,True)
 ```
 
-무작위로 List 를 만드는 생성자를 만들 때도 이 choose 생성자를 사용합니다. 먼저 List 의 경우 길이라는 속성이 추가로 필요합니다. 무작위로 만드는 List 각각의 최대 길이를 지정해주어야 합니다. 그렇지 않으면 무한대 길이의 List 를 만들 수도 있으니까요. 그래서 다음의 sized 라는 것이 필요합니다.
+무작위로 List 를 만드는 생성자를 만들 때도 choose 를 사용합니다. 먼저 List 의 경우 길이라는 속성이 추가로 필요합니다. 무작위로 만드는 List 각각의 최대 길이를 지정해주어야 합니다. 그렇지 않으면 무한대 길이의 List 를 만들 수도 있으니까요. 그래서 다음의 sized 라는 것이 필요합니다.
 ```haskell
 sized:: (Int -> Gen a) -> Gen a
 ```
@@ -1618,7 +1622,7 @@ arbitrarySizedTree m = do
   ts <- vectorOf n (arbitrarySizedTree (m `div` 4))
   return (Tree t ts)
 ```
-위 코드에서 vectorOf 는 choose 와 마찬가지로 편의를 위해 제공하는 생성자로서 다음과 같은 type 을 가집니다.
+위 코드에서 vectorOf 는 choose 와 마찬가지로 편의를 위해 제공하는 조합함수로서 다음과 같은 type 을 가집니다.
 ```haskell
 vectorOf:: Int -> Gen a -> Gen [a]
 ```
@@ -1708,14 +1712,21 @@ prop_encodeOne c = length (encodeUTF16 c) == 1
     > quickCheck prop_encodeOne
     +++ OK, passed 100 tests.
 
-이는 QuickCheck 에서 Char type 의 Arbitrary instance 가 ASCII 값만 만들게 되어 있기 때문이다. 다음 코드가 QuickCheck 소스에서 해당 부분입니다.
+이는 QuickCheck 에서 Char type 의 Arbitrary instance 가 ASCII 값만 만들게 되어 있기 때문입니다. sample 함수를 써서 간단히 이를 확인해 볼 수 있습니다. sample 함수는 말 그대로 해당 type 의 임의의 값을 몇개 무작위로 뽑아서 예시로 보여줍니다.
+
+    > sample (arbitrary::Gen Char)
+    '\230'
+    'E'
+    ...
+
+다음 코드는 QuickCheck 소스에서 Char type 의 Arbitrary instance 정의 부분입니다.
 ```haskell
 instance Arbitrary Char where
   arbitrary = chr `fmap` oneof [choose (0,127), choose (0,255)]
 ```
 따라서 위에서 실패할 것으로 기대했던 속성이 성공했던 것입니다. 참고로 이렇게 Char type 의 무작위 생성값이 ASCII 값만 나오게 되어 있는 것은 일부러 그렇게 한 것입니다.
 
-따라서 원래 생각했던 바를 검증해 보려면 직접 별도의 type 을 정의해야 합니다. 다음 코드처럼.
+따라서 원래 생각했던 바를 검증하려면 직접 별도의 type 을 정의해야 합니다. 다음 코드처럼.
 ```haskell
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 import Test.QuickCheck
@@ -1728,14 +1739,48 @@ instance Arbitrary BigChar where
 
 prop_encodeOne (Big c) = length (encodeUTF16 c) == 1
 ```
-그리고 나서 다시 quickCheck 을 돌려보면 다음처럼 테스트를 통과하지 못함을 확인할 수 있습니다.
+그리고 나서 다시 quickCheck 을 돌려보면 다음처럼 테스트를 통과하지 못함을 확인할 수 있으며 어떤 입력에 대하여 실패하는지도 알려줍니다.
 
     > quickCheck prop_encodeOne
     *** Failed! Falsifiable (after 1 test):
     Big '\89420'
 
-
 #####shrinking
+무작위 입력값 발생 기능과 함께 QuickCheck 이 제공하는 또 다른 중요기능은 shrinking 입니다. 어떤 실패하는 입력을 찾았을 때 그 입력값의 크기가 매우 크다면 디버깅하기 불편할 것입니다. 예를 들어 Tree 에 대하여 테스트할 때 실패하는 입력값이 크기가 1000 짜리의 큰 Tree 라면 그것의 어떤 부분에서 잘못된 것이 있는지 디버깅하기 쉽지 않을 것입니다. Shrinking 기능은 어떤 속성에 대하여 반례를 찾았을 때 찾은 반례보다 조금씩 더 작은 크기의 반례를 찾아가는 기능입니다. 최종적으로 가장 작은 크기의 반례를 찾도록 해줍니다. 앞서 만들었던 BigChar 의 Arbitrary instance 에 shrinking 기능을 추가해 보겠습니다. 이는 shrink 함수를 정의해주면 됩니다. shrink 함수가 하는 일은 반례 하나를 받아서 그것보다 작은 크기의 여러 개의 반례들의 목록을 만드는 것입니다.
+```haskell
+import Data.Char (ord,chr)
+
+instance Arbitrary BigChar where
+  arbitrary = choose (Big '0',Big '\x10FFFF')
+  shrink (Big c) = map Big (shrinkChar c)
+
+shrinkChar c = map (chr.floor) (lst c)
+  where lst c = sequence [(*0.5), (*0.75), (*0.875)] (fromIntegral.ord $ c)
+```
+위 코드에서 BigChar 에 대한 shrink 함수는 code point 하나를 받아서 그것보다 일정 크기로 작은 code point 들을 세 개 만들고 있습니다. 그러면 quickCheck 이 이렇게 만든 세 개의 code point 에 대해서 테스트를 진행하여 테스트가 또 다시 실패하면 다시 해당 code point 에 대하여 shrinking 을 수행합니다. 이러한 과정을 반복하여 거치면서 테스트가 실패하는 좀 더 작은 code point 를 찾는 것입니다. Shrinking 기능을 추가하고 나서 quickCheck 을 돌리면 다음과 같이 shrinking 이 수행된 결과를 볼 수 있습니다.
+
+    > quickCheck prop_encodeOne3
+    *** Failed! Falsifiable (after 1 test and 5 shrinks):
+    Big '\70119'
+
+shrink 함수는 List 에 대해서는 어떻게 동작할까요? 시험해보겠습니다.
+
+    > shrink [2,3]
+    [[],[3],[2],[0,3],[1,3],[2,0],[2,2]]
+    > shrink [8]
+    [[],[0],[4],[6],[7]]
+
+앞서 만들었던 Rose Tree 의 Arbitrary instance 에도 shrinking 기능을 넣어보겠습니다. 다음처럼 할 수 있습니다.
+```haskell
+import Data.List (subsequences)
+
+instance Arbitrary a => Arbitrary (Tree a) where
+  arbitrary = sized arbitrarySizedTree
+  shrink (Tree t ts) =
+      [Tree t' ts| t' <- shrink t] ++
+      [t' | t' <- ts] ++
+      init [Tree t ts'| ts' <- subsequences ts]
+```
 
 ## 더 읽을 거리
 #### Zipper
