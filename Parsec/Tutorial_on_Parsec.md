@@ -5,7 +5,7 @@ Parsec 라이브러리를 쓰면 파싱(parsing) 작업을 매우 효율적으�
 ```haskell
 type Parser s a = s -> (a, s)
 ```
-여기서 s 는 입력을, a 는 찿고자 하는 pattern 을 뜻합니다. 그런데 하나 더 고려해야 할 게 있습니다. 뭘까요? 파싱이 항상 성공하는게 아니라는 것이지요. 그래서 다음처럼 type 을 바꿉니다.
+여기서 s 는 입력을, a 는 찿고자 하는 pattern 을 뜻합니다. 그런데 하나 더 고려해야 할 게 있습니다. 브로 파싱이 항상 성공하는건 아니라는 것이지요. 성공할 수도 실패할 수도 있는 값을 뜻하는 것은 Maybe 이지요. 그래서 다음처럼 type 을 바꿉니다.
 ```haskell
 type Parser s a = s -> Maybe (a, s)
 ```
@@ -43,14 +43,13 @@ number input =
     > number "abc98"
     Nothing
 
-이렇게 만든 stringBegin, number 두 개의 파서를 가지고 다음처럼 동작하는 version 이라는 아주 간단한 파서를 만들어봅니다.
+이렇게 만든 stringBegins, number 두 개의 파서를 가지고 다음처럼 동작하는 version 이라는 아주 간단한 파서를 만들어봅니다.
 
-    > version "version 8.0.1"
-    (8,0,1)
+    > version "version 8.0.1" -- 이 함수의 결과는 (8,0,1) 이면 될 것 같습니다.
 
 단순하게는 다음처럼 만들 수 있습니다.
 ```haskell
-versionDumb i0 =
+version1 i0 =
   case stringBegins "version " i0 of
     Nothing -> Nothing
     Just (_,i1) ->
@@ -70,8 +69,77 @@ versionDumb i0 =
                         Nothing -> Nothing
                         Just (revision,i6) -> Just((major,minor,revision),i6)
 ```
-이제 좀 더 똑똑한 방법으로 다시 작성하려보니 위 코드는 다음과 같은 패턴의 반복임을 알 수 있습니다.
+이제 좀 더 나은 방법으로 다시 작성하려보니 위 코드는 다음과 같은 패턴의 반복임을 알 수 있습니다.
 
 Parser 에 입력을 준다 → Parser 는 입력을 분석해서 찾으려는 패턴을 찾는다 → 찾으려는 패턴을 찾아서 분석이 성공하면 입력에서 남은 부분을 다음 Parser 로 넘긴다
 
+이 패턴을 함수로 만들어보면 다음과 같습니다. 함수 이름은 andThen 으로 하겠습니다.
+```haskell
+andThen :: Parser s a -> (a -> Parser s b) -> Parser s b
+andThen parse next = \input ->
+  case parse input of
+    Nothing          -> Nothing
+    Just (a, input') -> next a input'
+```
+이제 이 함수를 이용해서 version 함수를 다시 써보면 다음과 같습니다.
+```haskell
+version2 =
+  stringBegins "version " `andThen` \_ ->
+  number `andThen` \major ->
+  stringBegins "." `andThen` \_ ->
+  number `andThen` \minor ->
+  stringBegins "." `andThen` \_ ->
+  number `andThen` \revision ->
+  {- ... (major, minor, revision) 결과를 돌려주는 코드 ...-}
+```
+위 코드의 마지막 줄에서 결과를 돌려줄 때는 Parser 에 담아서 돌려주므로 이를 위한 함수도 따로 만듭니다. 함수 이름은 pack 으로 하겠습니다.
+```haskell
+pack :: a -> Parser s a
+pack a = \input -> Just (a, input)
+```
+이제 코드를 붙여보면 다음과 같습니다.
+```haskell
+version2 =
+  stringBegins "version " `andThen` \_ ->
+  number `andThen` \major ->
+  stringBegins "." `andThen` \_ ->
+  number `andThen` \minor ->
+  stringBegins "." `andThen` \_ ->
+  number `andThen` \revision ->
+  pack (major, minor, revision)
+```
+여기서 만든 andThen 함수와 pack 함수가 어디 다른 곳에서 보았던 것과 비슷하다고 느낀다면 그 느낌이 맞습니다. 다음 코드를 보겠습니다.
+```haskell
+andThen :: Parser s a -> (a -> Parser s b) -> Parser s b
+(>>=)   :: Monad m =>
+           m        a -> (a -> m        b) -> m        b
 
+pack   ::            a -> Parser s a
+return :: Monad m => a -> m        a
+```
+그렇습니다. Parser 는 사실 Monad 입니다. 그런데 앞서 우리가 Parser 를 type synonym 으로 정의했기 때문에 현재 상태에서는 이를 Monad 의 Instance 로 만들 수 없습니다. 왜냐하면 type synonym 은 어떠한 typeclass 에도 속할 수 없기 때문이지요. 따라서 Parser 를 다음처럼 새로운 자료형으로 정의하도록 합니다.
+```haskell
+newtype Parser s a = Parser {runParser :: s -> Maybe (a, s)}
+```
+이제 Parser 를 Monad 의 Instance 로 만들 수 있습니다.
+```haskell
+instance Monad (Parser s) where
+  (>>=) = parserBind
+  return = parserReturn
+
+{- 앞서 구현했던 함수와 비교해 보세요. newtype 관련 부분을 빼곤 다를 게 없습니다.
+pack         a =          \input -> Just (a, input)
+-}
+parserReturn a = Parser $ \input -> Just (a, input)
+
+{- 앞서 구현했던 함수와 비교해 보세요. newtype 관련 부분을 빼곤 다를 게 없습니다.
+andThen    parse next =          \input ->
+  case           parse input of
+    Nothing          -> Nothing
+    Just (a, input') ->            next a  input'
+-}
+parserBind parse next = Parser $ \input ->
+  case runParser parse input of
+    Nothing          -> Nothing
+    Just (a, input') -> runParser (next a) input'
+```
