@@ -128,18 +128,95 @@ instance Monad (Parser s) where
   return = parserReturn
 
 {- 앞서 구현했던 함수와 비교해 보세요. newtype 관련 부분을 빼곤 다를 게 없습니다.
-pack         a =          \input -> Just (a, input)
--}
+pack         a =          \input -> Just (a, input)                            -}
 parserReturn a = Parser $ \input -> Just (a, input)
 
 {- 앞서 구현했던 함수와 비교해 보세요. newtype 관련 부분을 빼곤 다를 게 없습니다.
 andThen    parse next =          \input ->
   case           parse input of
     Nothing          -> Nothing
-    Just (a, input') ->            next a  input'
--}
+    Just (a, input') ->            next a  input'                              -}
 parserBind parse next = Parser $ \input ->
   case runParser parse input of
     Nothing          -> Nothing
     Just (a, input') -> runParser (next a) input'
 ```
+(연습) Parser 를 Monad 의 Instance 로 만들었기 때문에 Parser 를 Applicative 와 Functor 의 instance 로도 만들어야 합니다. 아래 코드에서 Functor 로 만드는 코드를 완성해 보세요.
+```haskell
+import Control.Monad (ap)
+
+instance Functor (Parser s) where
+  fmap f parser = Parser $ \input -> ?
+
+instance Applicative (Parser s) where
+  pure = return
+  (<*>) = ap
+```
+stringBegins 함수와 number 함수도 바뀐 사항에 맞추어 다시 작성합니다.
+```haskell
+import Data.List (stripPrefix, span)
+import Data.Char (isDigit)
+
+stringBegins :: String -> Parser String String
+stringBegins pattern = Parser $ \input ->
+  case stripPrefix pattern input of
+    Nothing   -> Nothing
+    Just rest -> Just (pattern, rest)
+
+number:: Parser String Int
+number = Parser $ \input ->
+  let (h, t) = span isDigit input
+    in if h == "" then Nothing else Just (read h::Int, t)
+```
+이제 지금까지의 구현 사항을 이용하여 version 함수를 다음처럼 do notation 을 써서 더 간단하게 만들 수 있습니다.
+```haskell
+version3 = do
+  stringBegins "version "
+  major <- number
+  stringBegins "."
+  minor <- number
+  stringBegins "."
+  revision <- number
+  return (major,minor,revision)
+```
+또는 Applicative 임을 이용하여 다음처럼 할 수도 있습니다.
+```haskell
+version4 = (,,) <$>
+           (stringBegins "version " *> number <* stringBegins ".") <*>
+           (number <* stringBegins ".") <*>
+           number
+```
+
+    > runParser version4 "version 8.0.1"
+    Just ((8,0,1),"")
+
+추가로 하나 더 해볼것은 첫번째 Parser 가 실패했을 때 두번째 Parser 를 이용하도록 하는 것입니다. 즉, Parser 를 다음 Alternative 의 Instance 로 만드는 것입니다.
+```haskell
+class Applicative f => Alternative f where
+  empty :: f a
+  (<|>) :: f a -> f a -> f a
+```
+다음처럼 할 수 있습니다.
+```haskell
+import Control.Applicative
+
+instance Alternative (Parser s) where
+  empty = Parser $ \_ -> Nothing
+
+  f <|> g = Parser $ \input ->
+    case runParser f input of
+      Nothing -> runParser g input
+      result  -> result
+```
+이렇게 했을 때의 동작은 다음과 같습니다.
+
+    > let p = stringBegins "foo" <|> stringBegins "bar"
+    > runParser p "foowhee"
+    Just ("foo","whee")
+    > runParser p "quuxly"
+    Nothing
+    > runParser p "barely"
+    Just ("bar","ely")
+
+여기까지 다룬 내용이 바로 Parsec 라이브러리가 어떻게 구현되어 있는지에 대한 간략한 소개입니다. 이제 실제로 Parsec 을 이용하는 코드를 살펴보겠습니다.
+
