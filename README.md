@@ -1722,7 +1722,7 @@ prop_encodeOne c = length (encodeUTF16 c) == 1
     > quickCheck prop_encodeOne
     +++ OK, passed 100 tests.
 
-이는 QuickCheck 에서 Char type 의 Arbitrary instance 가 ASCII 값만 만들게 되어 있기 때문입니다. sample 함수를 써서 간단히 이를 확인해 볼 수 있습니다. sample 함수는 말 그대로 해당 type 의 임의의 값을 몇개 무작위로 뽑아서 예시로 보여줍니다.
+이는 QuickCheck 에서 Char type 의 Arbitrary instance 가 ASCII 값만 만들게 되어 있기 때문입니다. sample 함수를 써서 간단히 이를 확인해 볼 수 있습니다. sample 함수는 말 그대로 해당 type 의 임의의 값을 몇 개 무작위로 뽑아서 예시로 보여줍니다.
 
     > sample (arbitrary::Gen Char)
     '\230'
@@ -1734,7 +1734,7 @@ prop_encodeOne c = length (encodeUTF16 c) == 1
 instance Arbitrary Char where
   arbitrary = chr `fmap` oneof [choose (0,127), choose (0,255)]
 ```
-따라서 위에서 실패할 것으로 기대했던 속성이 성공했던 것입니다. 참고로 이렇게 Char type 의 무작위 생성값이 ASCII 값만 나오게 되어 있는 것은 일부러 그렇게 한 것입니다.
+따라서 위에서 실패할 것으로 기대했던 속성이 성공했던 것입니다. 참고로 이렇게 Char type 의 무작위 생성값이 ASCII 값만 나오게 되어 있는 것은 단순 착오에 의한 구현 실수로 보입니다만 확실하지는 않습니다.
 
 따라서 원래 생각했던 바를 검증하려면 직접 별도의 type 을 정의해야 합니다. 다음 코드처럼.
 ```haskell
