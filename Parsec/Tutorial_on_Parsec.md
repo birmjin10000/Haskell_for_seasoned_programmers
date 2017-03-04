@@ -223,7 +223,7 @@ instance Alternative (Parser s) where
 여기까지 다룬 내용이 바로 Parsec 라이브러리가 어떻게 구현되어 있는지에 대한 간략한 소개입니다. 이제 실제로 Parsec 을 이용하는 코드를 살펴보겠습니다.
 
 ####Parsec combinators
-우선 다음의 combinator 에 대해 알아보겠습니다.
+우선 다음 함수들에 대해 알아보겠습니다.
 
 - char
 - many, many1
@@ -232,13 +232,14 @@ instance Alternative (Parser s) where
 - noneOf, oneOf
 - string
 
+
     > import Text.Parsec
     > :set -XFlexibleContexts
     > let aParser = char 'a'
     > parse aParser "STDIN.." "abc"
     Right 'a'
 
-위 코드에서는 Text.Parsec 모듈에서 제공하는 **char** parser 를 이용하여 문자 'a' 를 파싱하는 aParser 를 하나 만들었습니다. 그리고 parse 함수를 이용하여 aParser 를 실행하였습니다. 입력 "abc" 를 주었더니 이를 파싱하여 결과로 Right 'a' 를 내놓았습니다. 참고로 parse 함수의 세 개의 인자를 받는데 각각이 뜻하는 바는 다음과 같습니다.
+위 코드에서는 Text.Parsec 모듈에서 제공하는 **char** parser 를 이용하여 문자 'a' 를 파싱하는 aParser 를 하나 만들었습니다. 그리고 parse 함수를 이용하여 aParser 를 실행하였습니다. 입력 "abc" 를 주었더니 이를 파싱하여 결과로 Right 'a' 를 내놓았습니다. 참고로 parse 함수는 세 개의 인자를 받는데 뜻하는 바는 다음과 같습니다.
 
     parse parser filePath input
 
@@ -249,14 +250,14 @@ instance Alternative (Parser s) where
     unexpected "b"
     expecting "a"
 
-**char** parser 는 문자 하나를 파싱하는데 "aaa" 같은 같은 문자가 여러개 있는 것을 파싱하려면 **many** parser 와 조합하여 사용하면 됩니다.
+**char** parser 는 문자 하나를 파싱하는데 "aaa" 같은 같은 문자가 여러개 있는 것을 파싱하려면 **many** combinator 와 조합하여 사용하면 됩니다.
 
     > parse (many aParser) "STDIN.." "aaabc"
     Right "aaa"
     > parse (many aParser) "STDIN.." "xyz"
     Right ""
 
-여기서 한 가지 알 수 있는 점은 **many** parser 는 절대로 실패하는 경우가 없다는 점입니다. 일치하는 경우가 전혀 없을 때는 실패하는 대신 빈 결과를 돌려줍니다. 적어도 하나 일치하는 경우가 있어야만 파싱이 성공하는 것으로 처리하고 싶을 때는 **many1** parser 를 씁니다.
+여기서 한 가지 알 수 있는 점은 **many** combinator 는 절대로 실패하는 경우가 없다는 점입니다. 일치하는 경우가 전혀 없을 때는 실패하는 대신 빈 결과를 돌려줍니다. 적어도 하나는 일치해야만 파싱이 성공하는 것으로 처리하고 싶을 때는 **many1** combinator 를 씁니다.
 
     > parse (many1 aParser) "STDIN.." "xyz"
     Left "STDIN.." (line 1, column 1):
@@ -292,7 +293,7 @@ instance Alternative (Parser s) where
     > parse (string "abc") "STDIN.." "abcdef"
     Right "abc"
 
-이제 이 combinator 들을 이용하여 작은 프로그램을 만들어보겠습니다.
+이제 작은 프로그램을 하나 만들어보겠습니다.
 
 ####CSV parser 만들기
 parseCSV 함수는 CSV 문자열을 받아서 이를 List of List of String 으로 파싱하도록 하겠습니다. 아래 그림처럼.
@@ -301,4 +302,84 @@ parseCSV 함수는 CSV 문자열을 받아서 이를 List of List of String 으�
 ```haskell
 parseCSV :: String -> Either ParseError [[String]]
 ```
+이제 parseCSV 함수를 구현하는데 앞서의 경우처럼 parse 함수에 csvParser 를 넘기는 꼴이 될 것입니다. 아래 코드처럼.
+```haskell
+parseCSV = parse csvParser ""
+```
+이제 csvParser 를 구현할텐데 우선 CSV 파일을 다음과 같은 구조로 생각해 볼 수 있습니다.
+<img src="csv_structure.png">
+즉, CSV 파일은 newline 으로 구분이 되는 line 들의 연속으로 이루어져 있고 각각의 line 들은 쉼표로 구분이 되는 cell 로 이루어져 있는 것입니다. 이 구조를 코드로 옮겨보면 우선 line 을 반복적으로 파싱을 하는 부분이 들어갑니다. 이 때 필요한 것이 endBy combinator 입니다.
+
+    > parse (endBy (many letter) (char ',')) "" "ab,cd,ef,"
+    Right ["ab","cd","ef"]
+
+endBy combinator 는 두 개의 parser 를 인자로 받는데 첫번째 인자는 얻고자 하는 내용에 관한 parser 이고 두 번째 인자는 separator 를 파싱하는 parser 입니다. 이제 endBy 를 사용하여 CSV 의 line 을 반복적으로 파싱하는 부분을 작성해보면 다음과 같습니다.
+```haskell
+csvParser = endBy lineParser eol
+eol = char '\n' -- for parsing an 'end of line'
+```
+다음으로 lineParser 를 구현해야 하는데 이는 cell 을 반복적으로 파싱하는 일을 한다고 했습니다. 이 때 endBy combinator 와 매우 비슷한 combinator 가 필요한데 바로 sepBy combinator 입니다.
+
+    > parse (sepBy (many letter) (char ',')) "" "ab,cd,ef,"
+    Right ["ab","cd","ef",""]
+    > parse (sepBy anyChar (char ',')) "" "a,b,c"
+    Right "abc"
+
+sepBy 와 endBy 의 차이는 파싱할 내용의 마지막에 separator 가 있느냐 없느냐의 차이입니다. sepBy 는 말 그대로 항목들이 구분자에 의해 분리되어 있는 형태를 입력으로 가정합니다. 이제 sepBy 를 사용하여 하나의 line 에서 cell 을 반복적으로 파싱하는 일을 하는 lineParser  구현해 보면 다음과 같습니다.
+```haskell
+lineParser = sepBy cellParser delimiter
+delimiter = char ','
+```
+마지막으로 cellParser 는 구분자로 사용되는 쉼표와 'end of line' 문자를 빼고 모두 파싱을 합니다. 따라서 앞서 배웠던 many 와 noneOf 를 사용하여 다음처럼 작성할 수 있습니다.
+```haskell
+cellParser = many (noneOf ",\n")
+```
+이제 모든 것을 한 곳에 모아보겠습니다.
+```haskell
+import Text.Parsec
+
+csvParser = endBy lineParser eol
+lineParser = sepBy cellParser delimiter
+cellParser = many (noneOf ",\n")
+eol = char '\n'
+delimiter = char ','
+
+parseCSV = parse csvParser "(source)"
+```
+
+####CSV Parser 만들기 계속
+앞서 만든 파서는 기본적인 동작은 하지만 모든 상황을 다 고려해서 작성하지는 못했습니다. 우선 새줄 문자로 어떤 것을 사용하는지는 OS 마다 다릅니다. Linux 및 Unix 계열 그리고 OS X 이후의 맥 운영체제는 '\n' 을 사용하지만 구형 맥 OS 는 '\r' 을 사용하고 Windows 는 "\r\n" 을 사용합니다. 따라서 eol 정의를 바꾸어주어야 합니다. 앞서 Alternative typeclass 를 다룰 때 나왔던 (<|>) 함수를 이용하면 다음처럼 써 볼 수 있을 것 같습니다.
+```haskell
+eol = string "\r" <|> string "\n" <|> string "\r\n"
+```
+그런데 딱 봐도 이건 "\r\n" 의 경우 "\r" 에서 먼저 걸리기 때문에 제대로 된 구현이 아닙니다.
+
+    > parse eol "" "\r\n"
+    Right "\r"
+
+그렇다면 순서를 바꿔보면 괜찮을까요?
+```haskell
+eol = string "\r\n" <|> string "\r" <|> string "\n"
+```
+이번에는 다른 경우에 문제가 됩니다. 다음처럼.
+
+    > parse eol "" "\r"
+    Left (line 1, column 1):
+    unexpected end of input
+    expecting "\r\n"
+
+애초에 이 문제를 제대로 풀려면 파싱하려고 입력에서 문자 하나를 봤을 때 그 다음에 올 문자가 뭔지 역시 확인해봐야 합니다. 이러한 일(lookahead)을 해주는 것이 **try** combinator 입니다.
+```haskell
+eol = try (string "\r\n") <|> string "\r" <|> string "\n"
+```
+parse try p 의 동작은 parse p 의 동작과 비슷한데 다만 에러가 발생했을 때 입력의 상태가 다릅니다. parse p 의 경우 에러 발생시 남아있는 입력이 원래 입력보다 짧지만 parse try p 는 원래 입력 상태 그래로 남아있습니다.
+
+마지막으로 새줄문자를 아예 찾지 못했을 경우도 가정해야 합니다. 이러한 경우에 사용자가 지정한 오류메시지를 출력하려면 **<?>** combinator 를 사용합니다. 다음처럼.
+```haskell
+eol =   try (string "\r\n")
+    <|> string "\r"
+    <|> string "\n"
+    <?> "end of line"
+```
+####CSV Parser 만들기 완결
 
