@@ -232,6 +232,7 @@ instance Alternative (Parser s) where
 - noneOf, oneOf
 - string
 
+Parsec 라이브러리를 사용하려면 Text.Parsec 모듈을 import 합니다.
 
     > import Text.Parsec
     > :set -XFlexibleContexts
