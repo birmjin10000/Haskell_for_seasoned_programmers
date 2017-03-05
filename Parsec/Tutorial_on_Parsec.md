@@ -225,12 +225,12 @@ instance Alternative (Parser s) where
 ####Parsec combinators
 우선 다음 함수들에 대해 알아보겠습니다.
 
-- char
-- many, many1
-- anyChar
-- letter, digit
-- noneOf, oneOf
-- string
+- [x] char
+- [x] many, many1
+- [x] anyChar
+- [x] letter, digit
+- [x] noneOf, oneOf
+- [x] string
 
 Parsec 라이브러리를 사용하려면 Text.Parsec 모듈을 import 합니다.
 
@@ -298,8 +298,7 @@ Parsec 라이브러리를 사용하려면 Text.Parsec 모듈을 import 합니다
 
 ####CSV parser 만들기
 
-- endBy
-- sepBy
+- [x] endBy, sepBy
 
 parseCSV 함수는 CSV 문자열을 받아서 이를 List of List of String 으로 파싱하도록 하겠습니다. 아래 그림처럼.
 <img src="parseCSV.png">
@@ -312,25 +311,26 @@ parseCSV :: String -> Either ParseError [[String]]
 parseCSV = parse csvParser ""
 ```
 이제 csvParser 를 구현할텐데 우선 CSV 파일을 다음과 같은 구조로 생각해 볼 수 있습니다.
-<img src="csv_structure.png">
-즉, CSV 파일은 newline 으로 구분이 되는 line 들의 연속으로 이루어져 있고 각각의 line 들은 쉼표로 구분이 되는 cell 로 이루어져 있는 것입니다. 이 구조를 코드로 옮겨보면 우선 line 을 반복적으로 파싱을 하는 부분이 들어갑니다. 이 때 필요한 것이 endBy combinator 입니다.
+<img src="csv_structure.png" width=376 height=140>
+
+즉, CSV 파일은 newline 으로 구분이 되는 line 들의 연속으로 이루어져 있고 각각의 line 들은 쉼표로 구분이 되는 cell 로 이루어져 있는 것입니다. 이 구조를 코드로 옮겨보면 우선 line 을 반복적으로 파싱을 하는 부분이 들어갑니다. 이 때 필요한 것이 **endBy** combinator 입니다.
 
     > parse (endBy (many letter) (char ',')) "" "ab,cd,ef,"
     Right ["ab","cd","ef"]
 
-endBy combinator 는 두 개의 parser 를 인자로 받는데 첫번째 인자는 얻고자 하는 내용에 관한 parser 이고 두 번째 인자는 separator 를 파싱하는 parser 입니다. 이제 endBy 를 사용하여 CSV 의 line 을 반복적으로 파싱하는 부분을 작성해보면 다음과 같습니다.
+**endBy** combinator 는 두 개의 parser 를 인자로 받는데 첫번째 인자는 얻고자 하는 내용에 관한 parser 이고 두 번째 인자는 separator 를 파싱하는 parser 입니다. 이제 **endBy** 를 사용하여 CSV 의 line 을 반복적으로 파싱하는 부분을 작성해보면 다음과 같습니다.
 ```haskell
 csvParser = endBy lineParser eol
 eol = char '\n' -- for parsing an 'end of line'
 ```
-다음으로 lineParser 를 구현해야 하는데 이는 cell 을 반복적으로 파싱하는 일을 한다고 했습니다. 이 때 endBy combinator 와 매우 비슷한 combinator 가 필요한데 바로 sepBy combinator 입니다.
+다음으로 lineParser 를 구현해야 하는데 이는 cell 을 반복적으로 파싱하는 일을 한다고 했습니다. 이 때 **endBy** combinator 와 거의 같은 combinator 를 쓰는데 바로 **sepBy** 입니다.
 
     > parse (sepBy (many letter) (char ',')) "" "ab,cd,ef,"
     Right ["ab","cd","ef",""]
     > parse (sepBy anyChar (char ',')) "" "a,b,c"
     Right "abc"
 
-sepBy 와 endBy 의 차이는 파싱할 내용의 마지막에 separator 가 있느냐 없느냐의 차이입니다. sepBy 는 말 그대로 항목들이 구분자에 의해 분리되어 있는 형태를 입력으로 가정합니다. 이제 sepBy 를 사용하여 하나의 line 에서 cell 을 반복적으로 파싱하는 일을 하는 lineParser  구현해 보면 다음과 같습니다.
+**sepBy** 와 **endBy** 의 차이는 파싱할 내용의 마지막에 separator 가 있느냐 없느냐의 차이입니다. **sepBy** 는 말 그대로 항목들이 구분자에 의해 분리되어 있는 형태를 입력으로 가정합니다. 이를 사용하여 하나의 line 에서 cell 을 반복적으로 파싱하는 일을 하는 lineParser  구현해 보면 다음과 같습니다.
 ```haskell
 lineParser = sepBy cellParser delimiter
 delimiter = char ','
@@ -354,8 +354,8 @@ parseCSV = parse csvParser "STDIN.."
 
 ####CSV Parser 만들기 계속
 
-- try
-- <?>
+- [x] try
+- [x] <?>
 
 앞서 만든 파서는 기본적인 동작은 하지만 모든 상황을 다 고려해서 작성하지는 못했습니다. 우선 새줄 문자로 어떤 것을 사용하는지는 OS 마다 다릅니다. Linux 및 Unix 계열 그리고 OS X 이후의 맥 운영체제는 '\n' 을 사용하지만 구형 맥 OS 는 '\r' 을 사용하고 Windows 는 "\r\n" 을 사용합니다. 따라서 eol 정의를 바꾸어주어야 합니다. 앞서 Alternative typeclass 를 다룰 때 나왔던 (<|>) 함수를 이용하면 다음처럼 써 볼 수 있을 것 같습니다.
 ```haskell
@@ -391,7 +391,7 @@ eol =   try (string "\r\n")
     <?> "end of line"
 ```
 ####CSV Parser 만들기 완결
-- between
+- [x] between
 
 마지막으로 고려해야 할 점은 쉼표가 구분자가 아니라 그 자체로서 내용으로 있는 경우입니다. 이 경우에 cell 의 내용을 쌍따옴표로 감싸주어서 해결합니다. 즉, "Jane, Mary and John" 이렇게. 또한 쌍따옴표가 그 자체로서 내용으로 들어있을때는 겹쌍따옴표를 사용합니다. "SPJ says, ""Hello, fellow Haskellers!""." 이렇게. 이제 이걸 구현하려고 다음처럼 cellParser 를 수정하였습니다.
 ```haskell
@@ -407,7 +407,7 @@ cellParser = quotedCellParser <|> many (noneOf ",\n")
 ```haskell
 quotedCellParser = between (char '"') (char '"') $ many (noneOf "\"")
 ```
-겹쌍따옴표 처리의 경우 겹쌍따옴표를 만나면 쌍따옴표 하나로 바꾸어주면 됩니다. 이때 반드시 try 를 사용해야 합니다. 만약에 겹쌍따옴표가 아닌 쌍따옴표 하나만 있는 것으로 판명날 경우 이는 곧 cell 의 종료를 뜻하므로 해당 쌍따옴표를 소비하지 않은 상태로 돌아가야 합니다. 그래야 between 에서 cell 의 종료를 파싱할 수 있습니다. 이 부분까지 포함하여 quotedCellParser 를 완성하면 다음과 같습니다.
+겹쌍따옴표 처리의 경우 겹쌍따옴표를 만나면 쌍따옴표 하나로 바꾸어주면 됩니다. 이때 반드시 try 를 사용해야 합니다. 만약에 겹쌍따옴표가 아닌 쌍따옴표 하나만 있는 것으로 판명날 경우 이는 곧 cell 의 종료를 뜻하므로 해당 쌍따옴표를 소비하지 않은 상태로 돌아가야 합니다. 그래야 **between** 에서 cell 의 종료를 파싱할 수 있습니다. 이 부분까지 포함하여 quotedCellParser 를 완성하면 다음과 같습니다.
 ```haskell
 quotedCellParser =
   between (char '"') (char '"') $ many c
