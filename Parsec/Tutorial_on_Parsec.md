@@ -310,10 +310,10 @@ parseCSV :: String -> Either ParseError [[String]]
 ```haskell
 parseCSV = parse csvParser ""
 ```
-이제 csvParser 를 구현할텐데 우선 CSV 파일을 다음과 같은 구조로 생각해 볼 수 있습니다.
-<img src="csv_structure.png" width=376 height=140>
+csvParser 를 구현할 때 CSV 파일을 다음과 같은 구조로 생각해 볼 수 있습니다.
+<img src="csv_structure.png" width=564 height=210>
 
-즉, CSV 파일은 newline 으로 구분이 되는 line 들의 연속으로 이루어져 있고 각각의 line 들은 쉼표로 구분이 되는 cell 로 이루어져 있는 것입니다. 이 구조를 코드로 옮겨보면 우선 line 을 반복적으로 파싱을 하는 부분이 들어갑니다. 이 때 필요한 것이 **endBy** combinator 입니다.
+즉, CSV 파일은 새줄 문자로 구분이 되는 line 들의 연속으로 이루어져 있고 각각의 line 들은 쉼표로 구분이 되는 cell 로 이루어져 있는 것입니다. 이 구조를 코드로 옮겨보면 우선 line 을 반복적으로 파싱을 하는 부분이 들어갑니다. 이 때 필요한 것이 **endBy** combinator 입니다.
 
     > parse (endBy (many letter) (char ',')) "" "ab,cd,ef,"
     Right ["ab","cd","ef"]
@@ -381,9 +381,9 @@ eol = string "\r\n" <|> string "\r" <|> string "\n"
 ```haskell
 eol = try (string "\r\n") <|> string "\r" <|> string "\n"
 ```
-parse try p 의 동작은 parse p 의 동작과 비슷한데 다만 에러가 발생했을 때 입력의 상태가 다릅니다. parse p 의 경우 에러 발생시 남아있는 입력이 원래 입력보다 짧지만(파서가 소비했기 때문에) parse try p 는 원래 입력 상태 그래로 남아있습니다.
+parse try p 의 동작은 parse p 의 동작과 비슷한데 다만 에러가 발생했을 때 입력의 상태가 다릅니다. parse p 의 경우 에러 발생시 남아있는 입력이 원래 입력보다 짧지만(파서가 소비했기 때문에) parse try p 는 원래 입력 상태 그대로 남아있습니다.
 
-마지막으로 새줄문자를 아예 찾지 못했을 경우도 가정해야 합니다. 이러한 경우에 사용자가 지정한 오류메시지를 출력하려면 **<?>** combinator 를 사용합니다. 다음처럼.
+마지막으로 새줄 문자를 아예 찾지 못했을 경우에 대한 처리도 해야합니다. 이러한 경우에 사용자가 지정한 오류메시지를 출력하려면 **<?>** combinator 를 사용합니다. 다음처럼.
 ```haskell
 eol =   try (string "\r\n")
     <|> string "\r"
@@ -413,7 +413,7 @@ quotedCellParser =
   between (char '"') (char '"') $ many c
   where c = noneOf "\"" <|> try (string "\"\"" >> return '\"')
 ```
-이제 완결된 CSVParser 는 다음과 같습니다.
+완성한 CSVParser 는 다음과 같습니다.
 ```haskell
 import Text.Parsec
 
@@ -437,7 +437,7 @@ main =
                     print e
        Right r -> mapM_ print r
 ```
-이제 이를 이용해서 <a href="sample.csv">CSV 파일 하나</a>를 파싱해보도록 하겠습니다. 파싱 결과는 다음과 같습니다.
+이 CSVParser 를 이용해서 <a href="sample.csv">CSV 파일 하나</a>를 파싱하겠습니다. 파싱 결과는 다음과 같습니다.
 
     ["No","Name","Comments"]
     ["1","Anonymous","This, is, one, big, cell."]
