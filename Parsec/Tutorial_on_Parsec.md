@@ -442,5 +442,5 @@ main =
     ["No","Name","Comments"]
     ["1","Anonymous","This, is, one, big, cell."]
     ["2","Simon P.Jones","SPJ says, \"Hello, fellow Haskellers!\"."]
-    ["3","Paris","48\176\&51'24\"N"]
+    ["3","Seoul","37\176\&33'60\"N 126\176\&58'41\"E"]
 
