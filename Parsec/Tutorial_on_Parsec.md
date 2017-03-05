@@ -297,6 +297,10 @@ Parsec 라이브러리를 사용하려면 Text.Parsec 모듈을 import 합니다
 이제 작은 프로그램을 하나 만들어보겠습니다.
 
 ####CSV parser 만들기
+
+- endBy
+- sepBy
+
 parseCSV 함수는 CSV 문자열을 받아서 이를 List of List of String 으로 파싱하도록 하겠습니다. 아래 그림처럼.
 <img src="parseCSV.png">
 다음은 parseCSV 함수의 type입니다. 파싱이 실패할 경우에는 parse error 를 보여주는데 type 은 Text.Parsec.Error 모듈에 미리 정의되어 있는 ParseError 자료형입니다.
@@ -345,10 +349,14 @@ cellParser = many (noneOf ",\n")
 eol = char '\n'
 delimiter = char ','
 
-parseCSV = parse csvParser "(source)"
+parseCSV = parse csvParser "STDIN.."
 ```
 
 ####CSV Parser 만들기 계속
+
+- try
+- <?>
+
 앞서 만든 파서는 기본적인 동작은 하지만 모든 상황을 다 고려해서 작성하지는 못했습니다. 우선 새줄 문자로 어떤 것을 사용하는지는 OS 마다 다릅니다. Linux 및 Unix 계열 그리고 OS X 이후의 맥 운영체제는 '\n' 을 사용하지만 구형 맥 OS 는 '\r' 을 사용하고 Windows 는 "\r\n" 을 사용합니다. 따라서 eol 정의를 바꾸어주어야 합니다. 앞서 Alternative typeclass 를 다룰 때 나왔던 (<|>) 함수를 이용하면 다음처럼 써 볼 수 있을 것 같습니다.
 ```haskell
 eol = string "\r" <|> string "\n" <|> string "\r\n"
@@ -373,7 +381,7 @@ eol = string "\r\n" <|> string "\r" <|> string "\n"
 ```haskell
 eol = try (string "\r\n") <|> string "\r" <|> string "\n"
 ```
-parse try p 의 동작은 parse p 의 동작과 비슷한데 다만 에러가 발생했을 때 입력의 상태가 다릅니다. parse p 의 경우 에러 발생시 남아있는 입력이 원래 입력보다 짧지만 parse try p 는 원래 입력 상태 그래로 남아있습니다.
+parse try p 의 동작은 parse p 의 동작과 비슷한데 다만 에러가 발생했을 때 입력의 상태가 다릅니다. parse p 의 경우 에러 발생시 남아있는 입력이 원래 입력보다 짧지만(파서가 소비했기 때문에) parse try p 는 원래 입력 상태 그래로 남아있습니다.
 
 마지막으로 새줄문자를 아예 찾지 못했을 경우도 가정해야 합니다. 이러한 경우에 사용자가 지정한 오류메시지를 출력하려면 **<?>** combinator 를 사용합니다. 다음처럼.
 ```haskell
@@ -383,4 +391,56 @@ eol =   try (string "\r\n")
     <?> "end of line"
 ```
 ####CSV Parser 만들기 완결
+- between
+
+마지막으로 고려해야 할 점은 쉼표가 구분자가 아니라 그 자체로서 내용으로 있는 경우입니다. 이 경우에 cell 의 내용을 쌍따옴표로 감싸주어서 해결합니다. 즉, "Jane, Mary and John" 이렇게. 또한 쌍따옴표가 그 자체로서 내용으로 들어있을때는 겹쌍따옴표를 사용합니다. "SPJ says, ""Hello, fellow Haskellers!""." 이렇게. 이제 이걸 구현하려고 다음처럼 cellParser 를 수정하였습니다.
+```haskell
+cellParser = quotedCellParser <|> many (noneOf ",\n")
+```
+이제 quotedCellParser 는 명백히 따옴표 사이에 있는 내용을 파싱합니다. Parsec 의 **between** combinator 가 이름그대로 뭔가의 사이에 있는 것을 파싱할 수 있게 합니다.
+
+    > let quotes = between (char '"') (char '"')
+    > parse (quotes (many (noneOf "\""))) "" "\"ab,cd\""
+    Right "ab,cd"
+
+**between** combinator 를 이용하여 quotedCellParser 를 다음처럼 작성할 수 있습니다.
+```haskell
+quotedCellParser = between (char '"') (char '"') $ many (noneOf "\"")
+```
+겹쌍따옴표 처리의 경우 겹쌍따옴표를 만나면 쌍따옴표 하나로 바꾸어주면 됩니다. 이때 반드시 try 를 사용해야 합니다. 만약에 겹쌍따옴표가 아닌 쌍따옴표 하나만 있는 것으로 판명날 경우 이는 곧 cell 의 종료를 뜻하므로 해당 쌍따옴표를 소비하지 않은 상태로 돌아가야 합니다. 그래야 between 에서 cell 의 종료를 파싱할 수 있습니다. 이 부분까지 포함하여 quotedCellParser 를 완성하면 다음과 같습니다.
+```haskell
+quotedCellParser =
+  between (char '"') (char '"') $ many c
+  where c = noneOf "\"" <|> try (string "\"\"" >> return '\"')
+```
+이제 완결된 CSVParser 는 다음과 같습니다.
+```haskell
+import Text.Parsec
+
+csvParser = endBy lineParser eol
+lineParser = sepBy cellParser delimiter
+cellParser =
+  quotedCellParser <|> many (noneOf ",\n")
+    where quotedCellParser = between (char '"') (char '"') $ many c
+          c = noneOf "\"" <|> try (string "\"\"" >> return '\"')
+
+eol = try (string "\r\n") <|> string "\r" <|> string "\n" <?> "end of line"
+delimiter = char ','
+
+parseCSV :: String -> Either ParseError [[String]]
+parseCSV = parse csvParser "STDIN.."
+
+main =
+  do contents <- getContents
+     case parseCSV contents of
+       Left e -> do putStrLn "Error parsing input:"
+                    print e
+       Right r -> mapM_ print r
+```
+이제 이를 이용해서 <a href="sample.csv">CSV 파일 하나</a>를 파싱해보도록 하겠습니다. 파싱 결과는 다음과 같습니다.
+
+    ["No","Name","Comments"]
+    ["1","Anonymous","This, is, one, big, cell."]
+    ["2","Simon P.Jones","SPJ says, \"Hello, fellow Haskellers!\"."]
+    ["3","Haskell Curry","Me like \"Currying\"."]
 
