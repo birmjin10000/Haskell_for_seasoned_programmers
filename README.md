@@ -690,9 +690,9 @@ decodedJedi = decode jediAsJSON::Maybe Jedi
     > :l Jedi.hs
     Ok, modules loaded: Main
     > print jediAsJSON
-    "{\"age\":900,\"name\":\"Yoda\"}"
+    "{\"age\":900,\"greeting\":\"May the Lambda be with you.\",\"name\":\"Yoda\"}"
     > print decodedJedi
-    Just (Jedi {name = "Yoda", age = 900})
+    Just (Jedi {name = "Yoda", age = 900, greeting = "May the Lambda be with you."})
 
 한편, DeriveAnyClass 확장을 함께 쓰면 더 코드를 간결하게 작성할 수 있습니다. 위 코드에서 instance 선언부가 필요없습니다.
 
