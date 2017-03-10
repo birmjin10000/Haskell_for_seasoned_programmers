@@ -1538,7 +1538,7 @@ countEntries path = do
     isDir <- liftIO . doesDirectoryExist $ newName
     when isDir $ countEntries newName
 ```
-이 코드를 실행할 때는 runWriterT 또는 execWriterT 함수를 씁니다.
+위 코드에서는 Write monad 의 tell 함수를 이용하여 로그를 하고 있으며 liftIO 함수를 이용하여 Writer monad 안에 감싸져 있는 IO monad 를 끄집어 내고 있습니다. 이 코드를 실행할 때는 runWriterT 또는 execWriterT 함수를 씁니다.
 
     > :l monadT1.hs
     [1 of 1] Compiling Main             ( monadT1.hs, interpreted )
@@ -1554,6 +1554,23 @@ countEntries path = do
     ("./.stack-work/dist",1)
     ...
 
+이렇듯 Monad transformer 는 여러 종류의 monad 를 층층이 쌓아서 한 코드에서 동시에 이용할 수 있게 합니다. 이번에는 3 개의 monad 를 쌓는 예제를 보겠습니다.
+
+앞서 작성한 프로그램을 조금 수정하여 방문할 수 있는 하위 디렉토리의 최대 깊이(cfgMaxDepth)를 지정하고, 방문한 디렉토리의 최대깊이(stDeepestReached)를 기록할 수 있도록 하겠습니다. 이에 맞추어 다음 두 개의 자료형을 만듭니다.
+```haskell
+data AppConfig = AppConfig { cfgMaxDepth :: Int } deriving (Show)
+data AppState = AppState { stDeepestReached :: Int } deriving (Show)
+```
+3 개의 monad 를 사용할텐데 각각의 monad 의 쓰임새는 다음과 같습니다.
+- 파일 시스템이라는 외부세계에 대해 작업을 해야 하므로 IO monad 를 사용합니다.
+- 최대 방문 깊이라는 변경 불가의 설정값을 읽는데 Reader monad 를 사용합니다.
+- 방문한 최대 깊이라는 수정이 계속 필요한 값을 다루는데 State monad 를 사용합니다.
+
+그리고 이 3 개의 monad 를 다음처럼 쌓습니다.
+```haskell
+type App = ReaderT AppConfig (StateT AppState IO)
+```
+<img src="MonadStacking.png">
 
 ####REPA(REgular PArallel arrays)
 
