@@ -1571,18 +1571,47 @@ data AppState = AppState { stDeepestReached :: Int } deriving (Show)
 type App = ReaderT AppConfig (StateT AppState IO)
 ```
 <img src="MonadStacking.png">
+이렇게 만든 monad 를 실행하는 함수는 다음처럼 직관적으로 만들 수 있습니다.
+```haskell
+runApp :: App a -> Int -> IO (a, AppState)
+runApp k maxDepth =
+  let config = AppConfig maxDepth
+      state = AppState 0
+  in runStateT (runReaderT k config) state
+```
+마지막 줄의 코드를 보면 먼저 runReaderT 함수를 통해 ReaderT transformer 를 벗기고 그 다음 runStateT 함수를 통해 StateT transformer 를 벗깁니다. 최종적으로 IO monad 에 들어있는 결과를 얻습니다.
+
+App 자료형을 사용한 코드는 다음과 같습니다.
+```haskell
+constrainedCount :: Int -> FilePath -> App [(FilePath, Int)]
+constrainedCount curDepth path = do
+  contents <- liftIO . listDirectory $ path
+  config <- ask
+  rest <- forM contents $ \name -> do
+            let newPath = path </> name
+            isDir <- liftIO $ doesDirectoryExist newPath
+            if isDir && curDepth < cfgMaxDepth config
+              then do
+                let newDepth = curDepth + 1
+                st <- get
+                when (stDeepestReached st < newDepth) $
+                  put st { stDeepestReached = newDepth }
+                constrainedCount newDepth newPath
+              else return []
+  return $ (path, length contents) : concat rest
+```
 
 ####REPA(REgular PArallel arrays)
 
 ## 둘째날 첫 100분
-- DWARF based debugging
-- Template Haskell with Quasiquoting
+- [x] DWARF based debugging
+- [x] Template Haskell with Quasiquoting
 
 ## 둘째날 두번째 100분
-- Dependent Types
+- [x] Dependent Types
 
 ## 둘째날 세번째 100분
-- QuickCheck
+- [x] QuickCheck
   * shrinking
 
 ####QuickCheck
