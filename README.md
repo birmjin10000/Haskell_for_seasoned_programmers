@@ -7,11 +7,11 @@ Monad Transformers, Arrow, GADTs, Type Families, RankNTypes, Applicative Functor
 학습 내용은 이틀 동안 다룰 수 있게 짜여져 있습니다.
 
 ## 사전 학습
-- stackage
-- cabal
-- Sequence, Vector, Array
-- ViewPatterns
-- Pattern Synonyms
+- [x] stackage
+- [x] cabal
+- [x] Sequence, Vector, Array
+- [x] ViewPatterns
+- [x] Pattern Synonyms
 
 Haskell로 프로젝트를 할 때 cabal 을 통해 패키지를 설치하면 의존성 문제를 해결하는데 많은 시간을 허비할 수 있습니다. 이런 문제를 해결하고자 [stack](https://github.com/commercialhaskell/stack)과 같은 도구가 있습니다. Mac OS X의 경우 homebrew 로 설치하는 것이 가장 간편합니다. 설치 후에 다음과 같이 my-project 라는 이름으로 프로젝트를 하나 만들고 빌드 및 실행해 봅니다.
 
@@ -287,25 +287,25 @@ Data.Sequence, Data.Vector, Data.Array 는 모두 순차적인 자료구조입�
 
 ## 첫날 첫 100분
 다음의 ghc 컴파일러 확장을 배웁시다.
-- [BinaryLiterals](#binaryliterals)
-- [OverloadedStrings](#overloadedstrings)
-- [LambdaCase](#lambdacase)
-- [BangPatterns](#bangpatterns)
-- [TupleSections](#tuplesections)
-- [FlexibleInstances, TypeSynonymInstances](#flexibleinstances-typesynonyminstances)
-- [MultiParamTypeClasses](#multiparamtypeclasses)
-- [FunctionalDependencies](#functionaldependencies)
-- [RecordWildCards](#recordwildcards)
-- [ParallelListComp](#parallellistcomp)
-- [TransformListComp](#transformlistcomp)
-- [FlexibleContexts](#flexiblecontexts)
-- [RecursiveDo](#recursivedo)
-- [NoMonomorphismRestriction](#nomonomorphismrestriction)
-- [DeriveFunctor, DeriveFoldable, DeriveTraversable](#derivefunctor-derivefoldable-derivetraversable)
-- [DeriveGeneric, DeriveAnyClass](#derivegeneric-deriveanyclass)
-- [DeriveDataTypeable](#derivedatatypeable)
+- [x] [BinaryLiterals](#binaryliterals)
+- [x] [OverloadedStrings](#overloadedstrings)
+- [x] [LambdaCase](#lambdacase)
+- [x] [BangPatterns](#bangpatterns)
+- [x] [TupleSections](#tuplesections)
+- [x] [FlexibleInstances, TypeSynonymInstances](#flexibleinstances-typesynonyminstances)
+- [x] [MultiParamTypeClasses](#multiparamtypeclasses)
+- [x] [FunctionalDependencies](#functionaldependencies)
+- [x] [RecordWildCards](#recordwildcards)
+- [x] [ParallelListComp](#parallellistcomp)
+- [x] [TransformListComp](#transformlistcomp)
+- [x] [FlexibleContexts](#flexiblecontexts)
+- [x] [RecursiveDo](#recursivedo)
+- [x] [NoMonomorphismRestriction](#nomonomorphismrestriction)
+- [x] [DeriveFunctor, DeriveFoldable, DeriveTraversable](#derivefunctor-derivefoldable-derivetraversable)
+- [x] [DeriveGeneric, DeriveAnyClass](#derivegeneric-deriveanyclass)
+- [x] [DeriveDataTypeable](#derivedatatypeable)
     * [Data.Typeable](#datatypeable)
-- [GeneralizedNewtypeDeriving](#generalizednewtypederiving)
+- [x] [GeneralizedNewtypeDeriving](#generalizednewtypederiving)
 
 GHC 컴파일러 확장은 꽤 종류가 많은데 그 중에는 여러 사람들이 대체로 사용을 권장하지 않는 것도 있습니다. 여기에서 소개하는 확장들도 꼭 사용을 권장하는 확장들만 있는것은 아닙니다. 그러나 소스 코드를 볼 때 비교적 자주 볼 수 있는 것들이기에 소개합니다.
 
@@ -719,22 +719,22 @@ a = (Dollars 8) + (Dollars 9) -- Dollars 17
 
 ## 첫날 두번째 100분
 다음의 ghc 컴파일러 확장을 배웁시다.
-- [RankNTypes](#rankntypes)
-- [GADTs(Generalised Algebraic Data Types)](#gadtsgeneralised-algebraic-data-types)
-- [KindSignatures, DataKinds](#kindsignatures-datakinds)
-- [PolyKinds](#polykinds)
-- [ScopedTypeVariables](#scopedtypevariables)
-- [ExistentialQuantification](#existentialquantification)
+- [x] [RankNTypes](#rankntypes)
+- [x] [GADTs(Generalised Algebraic Data Types)](#gadtsgeneralised-algebraic-data-types)
+- [x] [KindSignatures, DataKinds](#kindsignatures-datakinds)
+- [x] [PolyKinds](#polykinds)
+- [x] [ScopedTypeVariables](#scopedtypevariables)
+- [x] [ExistentialQuantification](#existentialquantification)
     * [Existential Types](#existential-types)
-- [TypeFamilies](#typefamilies)
-- [TypeFamilyDependencies](#typefamilydependencies)
+- [x] [TypeFamilies](#typefamilies)
+- [x] [TypeFamilyDependencies](#typefamilydependencies)
     * [Injective Type Families](#injective-type-families)
-- [TypeInType](#typeintype)
-- [TypeOperators](#typeoperators)
-- [LiberalTypeSynonyms](#liberaltypesynonyms)
-- [DefaultSignatures](#defaultsignatures)
-- [ImplicitParams](#implicitparams)
-- [ConstraintKinds](#constraintkinds)
+- [x] [TypeInType](#typeintype)
+- [x] [TypeOperators](#typeoperators)
+- [x] [LiberalTypeSynonyms](#liberaltypesynonyms)
+- [x] [DefaultSignatures](#defaultsignatures)
+- [x] [ImplicitParams](#implicitparams)
+- [x] [ConstraintKinds](#constraintkinds)
 
 ####RankNTypes
 Haskell 에서의 type 은 기본적으로 Rank-1 type 입니다. 그렇다면 Rank-2 type 이란 것도 있는가? 있습니다. 이 Rank-N type 에 대해 알려면 우선 forall 예약어에 대해 알아야 합니다. 많이 쓰는 함수 length 의 typ 은 다음과 같습니다.
@@ -1402,11 +1402,11 @@ foo x = (show x, read)
 ```
 
 ## 첫날 세번째 100분
-- ApplicativeDo
-- StandaloneDeriving
-- Typed Holes
-- Monad Transformers
-- REPA(REgular PArallel arrays)
+- [x] ApplicativeDo
+- [x] StandaloneDeriving
+- [x] Typed Holes
+- [x] Monad Transformers
+- [x] REPA(REgular PArallel arrays)
 
 ####ApplicativeDo
 Monad 의 경우 do notation 을 사용하여 bind 동작을 좀 더 이해하기 쉬운 형태로 코드를 작성할 수 있습니다. ApplicativeDo 확장을 쓰면 do notation 을 Applicative 의 경우에도 쓸 수 있습니다. 다음 코드에서 ZipList type 은 Applicative 이지만 Monad 는 아닙니다. 따라서 do notation 을 사용할 수 없습니다.
