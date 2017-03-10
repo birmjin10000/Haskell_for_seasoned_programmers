@@ -1460,6 +1460,100 @@ deriving instance Show (T a)
 ####Typed Holes
 
 ####Monad Transformers
+다음 예제 코드는 하위 directory 를 순회하면서 각각의 directory 별로 항목이 몇개씩 있는지를 목록으로 반환합니다.
+```haskell
+-- monad0.hs
+import System.Directory (doesDirectoryExist, getDirectoryContents)
+import System.FilePath ((</>))
+import Control.Monad (forM, liftM)
+
+listDirectory :: FilePath -> IO [String]
+listDirectory = liftM (filter notDots) . getDirectoryContents
+    where notDots p = p /= "." && p /= ".."
+
+countEntriesTrad :: FilePath -> IO [(FilePath, Int)]
+countEntriesTrad path = do
+  contents <- listDirectory path
+  rest <- forM contents $ \name -> do
+            let newName = path </> name
+            isDir <- doesDirectoryExist newName
+            if isDir
+              then countEntriesTrad newName
+              else return []
+  return $ (path, length contents) : concat rest
+```
+이 코드를 ghci 에서 실행하면 다음과 같은 결과를 볼 수 있습니다.
+
+    > :l monadT0.hs
+    [1 of 1] Compiling Main             ( monadT0.hs, interpreted )
+    Ok, modules loaded: Main.
+    > :{
+    *Main| do
+    *Main|   result <- countEntriesTrad "."
+    *Main|   mapM_ print result
+    *Main| :}
+    (".",9)
+    ("./.stack-work",2)
+    ("./.stack-work/dist",1)
+    ...
+
+일종의 log 를 출력하는 일을 하는만큼 이를 Writer monad 를 이용해서 할 수 있습니다. Writer monad 는 기록하고 싶은 값을 우리가 원하는 아무 때나 기록하게 하는 만큼 위 코드에서 처럼 결과를 list 로 쌓을 필요가 없다는 점이 편합니다.
+
+그런데 한 가지 문제는 위 코드가 directory 순회를 하는 만큼, 반드시 IO monad 를 써야하므로 Writer monad 를 직접 쓸 수가 없습니다. 이 때 쓸 수 있는 것이 바로 Monad Transformer 인 WriterT 입니다.
+
+Writer 와 WriterT 의 type 을 비교해보겠습니다.
+
+    Writer w a
+    WriterT w m a
+
+WriterT 는 인자가 3개로 Writer 보다 하나가 더 많은데 이 하나 더 많은 인자 m 이 뜻하는 바는 또 다른 Monad 입니다. 예를 들어 다음처럼 새로운 type 을 만들 수 있습니다.
+
+    WriterT String IO a
+
+이 경우 Writer monad 가 IO monad 위에 올라가 있는 것입니다.
+
+이제 위의 예제 코드에서 우리가 필요한 type 은 다음과 같습니다.
+
+    Writer [(FilePath, Int)] IO a
+
+Monad Transformer 인 WriterT 를 이용하여 코드를 작성하면 다음과 같습니다.
+```haskell
+-- monadT1.hs
+import System.Directory (doesDirectoryExist, getDirectoryContents)
+import System.FilePath ((</>))
+import Control.Monad (forM_, when, liftM)
+import Control.Monad.Trans (liftIO)
+import Control.Monad.Writer (WriterT, tell)
+
+listDirectory :: FilePath -> IO [String]
+listDirectory = liftM (filter notDots) . getDirectoryContents
+  where notDots p = p /= "." && p /= ".."
+
+countEntries :: FilePath -> WriterT [(FilePath, Int)] IO ()
+countEntries path = do
+  contents <- liftIO . listDirectory $ path
+  tell [(path, length contents)]
+  forM_ contents $ \name -> do
+    let newName = path </> name
+    isDir <- liftIO . doesDirectoryExist $ newName
+    when isDir $ countEntries newName
+```
+이 코드를 실행할 때는 runWriterT 또는 execWriterT 함수를 씁니다.
+
+    > :l monadT1.hs
+    [1 of 1] Compiling Main             ( monadT1.hs, interpreted )
+    Ok, modules loaded: Main.
+    > import Control.Monad.Writer (execWriterT)
+    > :{
+    *Main Control.Monad.Writer| do
+    *Main Control.Monad.Writer|   result <- execWriterT $ countEntries "."
+    *Main Control.Monad.Writer|   mapM_ print result
+    *Main Control.Monad.Writer| :}
+    (".",9)
+    ("./.stack-work",2)
+    ("./.stack-work/dist",1)
+    ...
+
 
 ####REPA(REgular PArallel arrays)
 
