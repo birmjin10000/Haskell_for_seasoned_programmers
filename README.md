@@ -1,4 +1,4 @@
-##베테랑 개발자들을 위한 Haskell programming
+## 베테랑 개발자들을 위한 Haskell programming
 
 본 과정은 Haskell 기초를 충분히 알고 있고 Haskell 이외의 다른 프로그래밍 언어로 개발한 경험이 많은 개발자들을 대상으로 합니다. 이 과정을 마치면 다음 개념과 도구를 Haskell 프로그래밍에 사용하는데 불편함이 없게 되길 기대합니다.
 
@@ -309,13 +309,13 @@ Data.Sequence, Data.Vector, Data.Array 는 모두 순차적인 자료구조입�
 
 GHC 컴파일러 확장은 꽤 종류가 많은데 그 중에는 여러 사람들이 대체로 사용을 권장하지 않는 것도 있습니다. 여기에서 소개하는 확장들도 꼭 사용을 권장하는 확장들만 있는것은 아닙니다. 그러나 소스 코드를 볼 때 비교적 자주 볼 수 있는 것들이기에 소개합니다.
 
-####BinaryLiterals
+#### BinaryLiterals
 0b 또는 0B를 앞에 붙일 경우 그 다음에 나오는 숫자는 이진수를 뜻합니다. 즉 아래 코드에서 0b1101 은 이진수 1101 를 뜻합니다.
 ```haskell
 {-# LANGUAGE BinaryLiterals #-}
 a = 0b1101 -- 13
 ```
-####OverloadedStrings
+#### OverloadedStrings
 다음 코드를 봅시다. 숫자의 type은 Int, Float, Double 등 여러가지인데, Haskell에서는 같은 숫자라도 주어진 type에 따라 type이 달리 정해질 수 있습니다. 숫자에 대해서는 다형성을 기본 지원해 주는 것이지요.
 
     > let a::Int; a = 2
@@ -343,7 +343,7 @@ b = "백두산"
 c::String
 c = "백두산"
 ```
-####LambdaCase
+#### LambdaCase
 case .. of 구문은 LambdaCase 확장을 이용하면 좀 더 간결하게 작성할 수 있습니다.
 ```haskell
 {-# LANGUAGE LambdaCase #-}
@@ -352,7 +352,7 @@ sayHello names = map (\case
                    "둘리" -> "공룡아, 안녕!"
                    name -> name ++", 반가워요!") names
 ```
-####BangPatterns
+#### BangPatterns
 Haskell 의 lazy evaluation 은 stack을 많이 사용하는 상황을 만들 수 있습니다. 이 때 사용할 수 있는 것이 Bang Patterns 입니다. 이를 사용하면 eager evaluation 을 하도록 만들 수 있습니다. 다음 코드처럼 변수 이름 앞에 느낌표를 붙이면 해당 변수는 thunk 에서 value 로 평가됩니다.
 ```haskell
 {-# LANGUAGE BangPatterns #-}
@@ -364,7 +364,7 @@ mean xs = s / l
         step (!x,!y) a = (x+a,y+1)
 ```
 
-####TupleSections
+#### TupleSections
 Tuple 을 만들 때 일부 요소를 partially applied 한 꼴을 이용할 수 있게 합니다. 다음 코드를 봅시다.
 ```haskell
 {-# LANGUAGE TupleSections #-}
@@ -373,7 +373,7 @@ Tuple 을 만들 때 일부 요소를 partially applied 한 꼴을 이용할 수
 map ("yo!",) [1,2,3] -- [("yo!",1),("yo!",2),("yo!",3)]
 ```
 
-####FlexibleInstances, TypeSynonymInstances
+#### FlexibleInstances, TypeSynonymInstances
 Haskell 에서 type class 의 인스턴스를 만들 때는 그 형식이 "type 이름 + type variable 목록" 이어야 합니다. 그래서 다음 처럼 이를 벗어난 인스턴스를 만들면 컴파일 에러가 납니다.
 ```haskell
 class Something a where
@@ -409,7 +409,7 @@ Error 가 나는 이유는...
 {-# LANGUAGE TypeSynonymInstances #-}
 
 ```
-####MultiParamTypeClasses
+#### MultiParamTypeClasses
 지금까지는 type class 를 만들 때 type variable 을 하나만 사용했습니다. 그런데 다음과 같은 경우에는 type parameter 가 두 개가 필요합니다. container 를 뜻하는 type class 를 만들려면 다음과 같이 할 수 있을 겁니다. 그런데 이를 컴파일하면 에러가 납니다.
 ```haskell
 {-# LANGUAGE FlexibleInstances #-}
@@ -453,7 +453,7 @@ ins2 xs a b = insert (insert xs a) b
     ins2::(Collection c e1, Collection c e) => c -> e1 -> e -> c
 
 이는 우리가 원하는 결과가 아닙니다. e1 과 e 가 같은 type 이라는 것을 compiler 가 모르기 때문에 이처럼 지나치게 일반화된 type 으로 추론을 했습니다. 이 같은 문제를 해결할 수 있는 것이 다음의 Functional Dependency 확장입니다.
-####FunctionalDependencies
+#### FunctionalDependencies
 아래 코드처럼 Functional Dependency 확장을 이용하면 ins2 함수의 type 을 컴파일러가 어떻게 추론하는지 봅시다.
 ```haskell
 {-# LANGUAGE FunctionalDependencies #-}
@@ -467,7 +467,7 @@ class Eq e => Collection c e | c -> e where
     ins2::Collection c e => c -> e -> e -> c
 
 
-####RecordWildCards
+#### RecordWildCards
 RecordWildCards 확장의 주 목적은 코드를 좀 더 간결하게 보이도록 하는 것입니다. 다음과 같은 Record syntax 의 자료형이 있다고 합시다.
 ```haskell
 data Worker = Worker
@@ -498,14 +498,14 @@ f (C {a = 1, ..}) = b + c + d
 f (C {..}) = b * c * d
 ```
 이렇게 코드를 작성했을때 f (C 1 2 3 4) 의 결과는 9 가 되고 f (C 9 2 3 4) 의 결과는 24가 됩니다.
-####ParallelListComp
+#### ParallelListComp
 List comprehension 에서는 Cartesian product 가 나옵니다. 즉, [x+y|x<-[1..3],y<-[10..12]] 의 결과는 길이가 9인 List 가 됩니다. ParallelListComp 확장을 쓰면 각 원소들을 1:1 대응하여 연산을 수행합니다. ParallelListComp 확장의 경우 generator 간 구분은 쉼표가 아니라 수직선으로 합니다.
 ```haskell
 {-# LANGUAGE ParallelListComp #-}
 [x+y|x<-[1..3] | y <-[10..12]] -- 결과는 [11,13,15]
 ```
 이는 zipWith (+) [1..3] [10..12] 한 것과 같은 결과로서 ParallelListComp 를 이용한 표현식은 zipWith 를 이용하여 똑같이 작성할 수 있습니다. 그럼에도 ParallelListComp 확장을 쓰면 좋은 점은 코드를 좀 더 보기좋게 작성할 수 있다는 점에 있습니다.
-####TransformListComp
+#### TransformListComp
 TransformListComp 는 List Comprehension 의 기능을 더욱 확장한 것으로 볼 수 있는데 이 확장을 사용하면 마치 SQL query 를 작성하듯 grouping, sorting 기능들을 써서 List comprehension 을 작성할 수 있습니다.
 ```haskell
 {-# LANGUAGE TransformListComp #-}
@@ -552,7 +552,7 @@ inits [y|x<-[1..3], y<-"cat"] -- 같은 결과를 얻습니다.
 -- [([],""),([1],"h"),([1,1],"hi"),([1,1,2],"hih"),([1,1,2,2],"hihi")]
 map (foldr (\(num,ch) acc -> (num:fst acc, ch:snd acc)) ([],[])) $ inits [(x,y)|x<-[1,2], y<-"hi"] -- 같은 결과
 ```
-####FlexibleContexts
+#### FlexibleContexts
 이 확장의 대표적인 사용예는 다음의 class constraints 작성 규칙 완화입니다.
 
     (Stream s u Char) =>
@@ -594,7 +594,7 @@ class (Monad m, Monad (t m)) => Transform t m where
 g :: Eq [a] => ...
 g :: Ord (T a ()) => ...
 ```
-####RecursiveDo
+#### RecursiveDo
 Haskell 에서는 lazy evaluation 덕분에 다음과 같은 순환 구조의 재귀코드를 작성할 수 있습니다.
 ```haskell
 main = print $
@@ -625,7 +625,7 @@ main = print((
      return $ snd y)::Identity Integer)
 ```
 
-####NoMonomorphismRestriction
+#### NoMonomorphismRestriction
 먼저 MonomorphismRestriction 이 무엇인지 알아봅시다. 일단 Monomorphism 이란 Polymorphism 과 반대 개념입니다. 다음 코드를 파일로 저장한 다음 GHCi 에서 load 해 봅시다.
 ```haskell
 -- Mono.hs
@@ -656,7 +656,7 @@ NoMonomorphismRestriction 이 뜻하는 바는 가능한 한 최대로 polymorph
 plus = (+)
 ```
 
-####DeriveFunctor, DeriveFoldable, DeriveTraversable
+#### DeriveFunctor, DeriveFoldable, DeriveTraversable
 다음처럼 Tree 를 정의하고 이에 대해서 fmap 함수를 적용하려면 Tree 가 Fuctor 이어야 합니다. 즉, 직접 Tree 를 Functor 로 만들어주어야 하는데, 이 때 DeriveFunctor 확장을 쓰면 컴파일러가 이 작업을 대신 해 줍니다. 마찬가지로 fold 함수를 적용하려면 Tree 가 Foldable 이어야 하는데 이 때도 역시 DeriveFoldable 확장을 쓰면 컴파일러가 알아서 Tree 를 Foldable 로 만들어 줍니다. DeriveTraversable 도 마찬가지로 함수 traverse 를 적용할 수 있도록 해 줍니다.
 ```haskell
 {-# LANGUAGE DeriveFunctor, DeriveFoldable, DeriveTraversable #-}
@@ -669,7 +669,7 @@ traverse (\name -> putStrLn ("What's "++name++"'s occupation?") *> getLine) myT
 -- ...
 ```
 
-####DeriveGeneric, DeriveAnyClass
+#### DeriveGeneric, DeriveAnyClass
 위에서 사용한 DeriveFunctor, DeriveFoldable, DeriveTraversable 은 모두 base 라이브러리에 속한 Functor, Foldable, Traversable 의 Instance 를 손쉽게 만들수 있게 해주었습니다. 그렇다면 base 라이브러리에 속하지 않은 type class 의 Instance 를 이와 같은 방식으로 손쉽게 만들 수 있는 확장은 없을까요? DeriveGeneric 확장이 바로 이 같은 상황에서 쓸 수 있는 확장입니다. Data.Aeson 모듈을 이용하여 원하는 데이터를 JSON 형식으로 바꾸는 코드를 작성해보겠습니다.
 ```haskell
 -- Jedi.hs
@@ -705,11 +705,11 @@ jediAsJSON = encode (Jedi{age=900, name="Yoda", greeting="May the Lambda be with
 ...
 ```
 
-####DeriveDataTypeable
+#### DeriveDataTypeable
 이 확장은 Dynamic typing 에 관한 것입니다. Haskell 은 Static typing 을 취하고 있지만 때때로 Dynamic typing 이 필요한 경우가 있을 때 이 확장을 사용합니다.
-#####Data.Typeable
+##### Data.Typeable
 
-####GeneralizedNewtypeDeriving
+#### GeneralizedNewtypeDeriving
 newtype 을 써서 만든 자료형은 deriving 방식을 사용하여 특정 type classe 의 instance 로 만들 수 없는데, GeneralizedNewtypeDeriving 확장은 그걸 할 수 있게 해줍니다.
 ```haskell
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -736,7 +736,7 @@ a = (Dollars 8) + (Dollars 9) -- Dollars 17
 - [x] [ImplicitParams](#implicitparams)
 - [x] [ConstraintKinds](#constraintkinds)
 
-####RankNTypes
+#### RankNTypes
 Haskell 에서의 type 은 기본적으로 Rank-1 type 입니다. 그렇다면 Rank-2 type 이란 것도 있는가? 있습니다. 이 Rank-N type 에 대해 알려면 우선 forall 예약어에 대해 알아야 합니다. 많이 쓰는 함수 length 의 typ 은 다음과 같습니다.
 ```haskell
 length:: [a] -> Int
@@ -801,7 +801,7 @@ length b -- 여기서의 length 함수의 type 은 [Double] -> Int 입니다.
 
 이처럼 parametric polymorphism 에서는 type variable 이 함수의 동작을 크게 규정합니다. 이를 Parametricity 라고 부르는데 예를 들어 f::[a] -> [a] 꼴인 함수 f 가 있을 때 이 함수가 하는 일을 추측해봅시다. 언뜻 매우 다양한 함수가 이 함수꼴 집합에 포함될 것이라고 생각할 수 있으나 사실은 정반대입니다. 모든 type 에 대하여 고려를 해야 하기 때문에 [a] -> [a] 꼴 함수집합에 속할 수 있는 함수는 매우 제한적입니다. 예를 들어 이 함수가 각 인자를 1 만큼 증가시키는 함수라고 추측해봅시다. 가능할까요? type variable 'a' 가 Int type 이면 가능합니다. 그런데 Bool type 이라면? 불가능한 일입니다. 따라서 [a] -> [a] 꼴 함수가 할 수 있는 일은 인자들의 순서를 재배열하거나, 인자들의 갯수를 늘리거나 또는 줄이는 일 정도입니다. 그 외에 혹시라도 뭐가 또 있을 수 있을까요?
 
-####GADTs(Generalized Algebraic Data Types)
+#### GADTs(Generalized Algebraic Data Types)
 다음과 같은 data type 을 정의한다고 해 봅시다.
 ```haskell
 data Expr = I Int
@@ -874,7 +874,7 @@ eq = Eq
 ```
 GADTs extension 을 통해 이러한 것이 가능합니다.
 
-####KindSignatures, DataKinds
+#### KindSignatures, DataKinds
 Haskell 은 type variable 의 kind 를 알아서 유추하지만 프로그래머가 직접 kind 를 명시해주는 것이 코드를 이해하기에 좋을 수도 있습니다. 마치 함수의 type 을 프로그래머가 직접 명시해 주는 것처럼. 다음 코드를 봅시다.
 ```haskell
 {-# LANGUAGE GADTs #-}
@@ -917,7 +917,7 @@ data Vec:: Natural -> * -> * where
   VNil:: Vec Zero a
   VCons:: a -> Vec n a -> Vec (Succ n) a
 ```
-####PolyKinds
+#### PolyKinds
 다음과 같은 코드가 있습니다.
 ```haskell
 data App f a = MkApp (f a)
@@ -937,7 +937,7 @@ App type 의 kind 를 확인해봅시다. ghci 에서 해 보겠습니다.
 
 이처럼 좀 더 구체적으로 kind 를 유추함을 알 수 있으며 이로 인해 App 을 좀 더 다양한 kind 에서 쓸 수 있습니다.
 
-####ScopedTypeVariables
+#### ScopedTypeVariables
 이 확장은 "Lexically" scoped type variable 에 관한 것입니다. 다음 코드를 봅니다.
 ```haskell
 f :: [a] -> [a]
@@ -965,7 +965,7 @@ f (x:xs) = xs ++ [ x :: a ]
 
 참고로 이 확장에 대한 원 논문은 Simon Peyton Jones 가 작성한 [Lexically-scoped type variables](https://www.microsoft.com/en-us/research/publication/lexically-scoped-type-variables/) 입니다.
 
-####ExistentialQuantification
+#### ExistentialQuantification
 앞서 Predicate Logic 의 Universal Quantification 에 대해 잠시 다루었는데 Existential Quantification 은 다음과 같습니다. 예) 똑똑한 한국사람이 적어도 한명 있다: ∃x{Korean(x) ∧ Smart(x)}
 
 Universal Quantification 과 Existential Quantification 은 서로 상호 변환이 가능한데 이 때 다음 두 가지 추론 규칙을 사용합니다.
@@ -1005,10 +1005,10 @@ main = f heteroList
 
 Existential Quantification 은 그자체로는 특별한 쓰임새가 있지는 않으나 다른 기능들의 밑바탕에 깔리는 중요 개념입니다. 따라서 Existential type 에 대하여 이해를 할 필요가 있습니다.
 
-#####Existential Types
+##### Existential Types
 Existential type 은 Abstract Data Type(이후 ADT) 을 위한 것입니다.
 
-####TypeFamilies
+#### TypeFamilies
 Type families 확장은 다음 네 가지 개념을 포함합니다.
 
 첫째, **Associated (Data) Type**
@@ -1305,18 +1305,18 @@ type instance GCD (Succ d) Zero (Succ n) = GCD (Succ Zero) d n
 
 이를 보면 add a b 의 결과값의 type 은 Pointer Two 로서 원래의 Pointer Eight 과는 정렬이 되지 않음을 type 수준에서 알 수 있습니다.
 
-####TypeFamilyDependencies
+#### TypeFamilyDependencies
 이 확장은 GHC 8.0.1 부터 나오며 Type Family 코드에서 Functional dependency 를 표현할 수 있게 해 줍니다.
 ```haskell
 ```
-#####Injective Type Families
+##### Injective Type Families
 
-####TypeInType
+#### TypeInType
 이 확장은 GHC 8.0.1 부터 나옵니다. 앞서 나왔던 PolyKinds 확장에서 한 걸음 더 나아간 것으로 이 확장을 쓰면 type 과 kind 가 같다고 선언하는 것이 됩니다. 원래 GHC 에서는 type 과 kind 를 별개의 것으로 구분한
 
 참고로 이 확장에서 다루고 있는 kind system 에 대한 논문은 [System FC with Expilicit Kind Equality](http://www.seas.upenn.edu/~sweirich/papers/fckinds.pdf) 입니다.
 
-####TypeOperators
+#### TypeOperators
 이 확장을 사용하면 (+) 와 같은 operator 들을 다음 처럼 type constructor 로서 사용할 수 있습니다.
 ```haskell
 {-# LANGUAGE TypeOperators #-}
@@ -1328,7 +1328,7 @@ type Foo = Int + Bool
     > :t a
     a :: Int + Bool
 
-####LiberalTypeSynonyms
+#### LiberalTypeSynonyms
 이 확장을 쓰면 Haskell 에서 type synonym 을 정의할 때 가하는 여러 가지 제약을 완화할 수 있습니다. 예를 들어 type synonym 은 partial application 이 안 되게 되어 있는데 이 확장을 쓰면 가능합니다. 아래 코드를 보면 Const 나 Id 는 모두 받아야 할 인자가 하나씩 모자란 상태로 myFunc의 type signature에서 쓰이고 있습니다.
 ```haskell
 {-# LANGUAGE LiberalTypeSynonyms #-}
@@ -1356,7 +1356,7 @@ g f = f 3 True
 ```
 이렇게 유연한 type synonym 을 사용할 수 있는 이유는 LiberalTypeSynonyms 확장을 쓰면 type synonym 을 확장한 이후에야 type check 이 이루어지기 때문입니다.
 
-####DefaultSignatures
+#### DefaultSignatures
 이 확장은 Generic Programming 과 관련되어 있는 확장으로 특정 instance 에 대한 default 구현을 허용해줍니다. 즉, 아래 코드에서 enum 함수의 type 은 [a] 이지만 만약에 Enum 의 instance 중에 하나가 instance (Generic a, GEnum (Rep a)) => Enum a 로 되어 있으면 해당 instance 는 default 예약어가 붙어 있는 enum 함수를 사용하게 되는 것입니다. 이 default 예약어가 붙어 있는 enum 함수의 type signature 가 [a] 가 아닐 수 있게 하는 것이 이 확장의 기능입니다.
 ```haskell
 {-# LANGUAGE DefaultSignatures #-}
@@ -1367,7 +1367,7 @@ class Enum a where
   default enum :: (Generic a, GEnum (Rep a)) => [a]
   enum = map to genum
 ```
-####ImplicitParams
+#### ImplicitParams
 이 확장은 함수 인자를 묵시적으로 지정할 수 있게 합니다. 좀 더 구체적으로는 함수의 특정 인자를 callee 의 입장에서 binding 하지 않고 caller 의 입장에서 binding 하는 dynamic binding 에 관한 것입니다. 아래 코드에서 sort 함수 type signature 의 constraint 부분에서 물음표가 앞에 붙어 있는 ?cmp 부분이 바로 implicit parameter 입니다.
 ```haskell
 {-# LANGUAGE ImplicitParam #-}
@@ -1385,7 +1385,7 @@ least xs = head (sort xs)
 
 이처럼 ?cmp 인자를 callee(least 함수) 에서 직접 넘기는 것이 아니라 caller(위의 let 구문) 에서 넘기고 있습니다.
 
-####ConstraintKinds
+#### ConstraintKinds
 constraints (=> 기호 왼쪽에 오는 부분) 는 매우 제한적인 문법을 가지고 있는데, 다음 세 가지의 경우만 허용 합니다.
 
 * 첫째, Show a 와 같은 class constraints.
@@ -1408,7 +1408,7 @@ foo x = (show x, read)
 - [x] Monad Transformers
 - [x] REPA(REgular PArallel arrays)
 
-####ApplicativeDo
+#### ApplicativeDo
 Monad 의 경우 do notation 을 사용하여 bind 동작을 좀 더 이해하기 쉬운 형태로 코드를 작성할 수 있습니다. ApplicativeDo 확장을 쓰면 do notation 을 Applicative 의 경우에도 쓸 수 있습니다. 다음 코드에서 ZipList type 은 Applicative 이지만 Monad 는 아닙니다. 따라서 do notation 을 사용할 수 없습니다.
 ```haskell
 import Control.Applicative
@@ -1424,7 +1424,7 @@ pp = do
   return (a*b)
 ```
 
-####StandaloneDeriving
+#### StandaloneDeriving
 다음처럼 자료형 만들 때 deriving 을 함께 하지 않고 별도로 하는 것을 말합니다.
 ```haskell
 {-# LANGUAGE StandaloneDeriving #-}
@@ -1457,9 +1457,9 @@ data T a where
 deriving instance Show (T a)
 ```
 
-####Typed Holes
+#### Typed Holes
 
-####Monad Transformers
+#### Monad Transformers
 다음 예제 코드는 하위 directory 를 순회하면서 각각의 directory 별로 항목이 몇개씩 있는지를 목록으로 반환합니다.
 ```haskell
 -- monad0.hs
@@ -1571,6 +1571,7 @@ data AppState = AppState { stDeepestReached :: Int } deriving (Show)
 type App = ReaderT AppConfig (StateT AppState IO)
 ```
 <img src="MonadStacking.png">
+
 이렇게 만든 monad 를 실행하는 함수는 다음처럼 직관적으로 만들 수 있습니다.
 ```haskell
 runApp :: App a -> Int -> IO (a, AppState)
@@ -1601,11 +1602,16 @@ constrainedCount curDepth path = do
   return $ (path, length contents) : concat rest
 ```
 
-####REPA(REgular PArallel arrays)
+#### REPA(REgular PArallel arrays)
 
 ## 둘째날 첫 100분
 - [x] DWARF based debugging
 - [x] Template Haskell with Quasiquoting
+
+#### DWARF based debugging
+
+#### Template Haskell with Quasiquoting
+Quasiquoting
 
 ## 둘째날 두번째 100분
 - [x] Dependent Types
@@ -1614,7 +1620,7 @@ constrainedCount curDepth path = do
 - [x] QuickCheck
   * shrinking
 
-####QuickCheck
+#### QuickCheck
 QuickCheck 은 '속성 기반 테스팅'(Property-based testing) 을 위한 라이브러리 입니다. 먼저 사용법을 살펴보겠습니다. 다음 revList 함수를 제대로 작성했는지 검증하는 것을 생각해봅시다.
 ```haskell
 revList:: [a] -> [a]
@@ -1895,7 +1901,7 @@ prop_encodeOne2 (Big c) = length (encodeUTF16 c) == 1
     *** Failed! Falsifiable (after 1 test):
     Big '\89420'
 
-#####shrinking
+##### shrinking
 무작위 입력값 발생 기능과 함께 QuickCheck 이 제공하는 또 다른 중요기능은 shrinking 입니다. 어떤 실패하는 입력을 찾았을 때 그 입력값의 크기가 매우 크다면 디버깅하기 불편할 것입니다. 예를 들어 Tree 에 대하여 테스트할 때 실패하는 입력값이 크기가 1000 짜리의 큰 Tree 라면 그것의 어떤 부분에서 잘못된 것이 있는지 디버깅하기 쉽지 않을 것입니다. Shrinking 기능은 어떤 속성에 대하여 반례를 찾았을 때 찾은 반례보다 조금씩 더 작은 크기의 반례를 찾아가는 기능입니다. 최종적으로 가장 작은 크기의 반례를 찾도록 해줍니다. 앞서 만들었던 BigChar 의 Arbitrary instance 에 shrinking 기능을 추가해 보겠습니다. 이는 shrink 함수를 정의해주면 됩니다. shrink 함수가 하는 일은 반례 하나를 받아서 그것보다 작은 크기의 여러 개의 반례들의 목록을 만드는 것입니다.
 ```haskell
 import Data.Char (ord,chr)
