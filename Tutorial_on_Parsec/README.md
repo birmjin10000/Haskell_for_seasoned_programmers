@@ -1,4 +1,4 @@
-###Parsec 배우기
+### Parsec 배우기
 Parsec 라이브러리를 쓰면 파싱(parsing) 작업을 매우 효율적으로 처리할 수 있습니다. 먼저 파싱이란 무엇인지에 대해 생각해 봅시다.
 
 파싱을 아주 단순하게 표현해 보면, 임의의 문자열을 입력으로 받아서 해당 문자열에서 특정 pattern 을 찾아내는 것이라고 할 수 있습니다. 조금 더 설명을 덧붙여 보면 입력 문자열에서 특정 pattern 을 찾을 수 있을 만큼 찾고나서 찾은 pattern 과 분석하지 못하고 남은 문자열을 함께 돌려주는 것이라고 할 수 있습니다. 이 설명을 type 으로 옮겨보면 다음과 같습니다.
@@ -222,7 +222,7 @@ instance Alternative (Parser s) where
 
 여기까지 다룬 내용이 바로 Parsec 라이브러리가 어떻게 구현되어 있는지에 대한 간략한 소개입니다. 이제 실제로 Parsec 을 이용하는 코드를 살펴보겠습니다.
 
-####Parsec combinators
+#### Parsec combinators
 우선 다음 함수들에 대해 알아보겠습니다.
 
 - [x] char
@@ -296,7 +296,7 @@ Parsec 라이브러리를 사용하려면 Text.Parsec 모듈을 import 합니다
 
 이제 작은 프로그램을 하나 만들어보겠습니다.
 
-####CSV parser 만들기
+#### CSV parser 만들기
 
 - [x] endBy, sepBy
 
@@ -352,7 +352,7 @@ delimiter = char ','
 parseCSV = parse csvParser "STDIN.."
 ```
 
-####CSV Parser 만들기 계속
+#### CSV Parser 만들기 계속
 
 - [x] try
 - [x] <?>
@@ -390,7 +390,7 @@ eol =   try (string "\r\n")
     <|> string "\n"
     <?> "end of line"
 ```
-####CSV Parser 만들기 완결
+#### CSV Parser 만들기 완결
 - [x] between
 
 마지막으로 고려해야 할 점은 쉼표가 구분자가 아니라 그 자체로서 내용으로 있는 경우입니다. 이 경우에 cell 의 내용을 쌍따옴표로 감싸주어서 해결합니다. 즉, "Jane, Mary and John" 이렇게. 또한 쌍따옴표가 그 자체로서 내용으로 들어있을때는 겹쌍따옴표를 사용합니다. "SPJ says, ""Hello, fellow Haskellers!""." 이렇게. 이제 이걸 구현하려고 다음처럼 cellParser 를 수정하였습니다.
@@ -444,5 +444,5 @@ main =
     ["2","Simon P.Jones","SPJ says, \"Hello, fellow Haskellers!\"."]
     ["3","Seoul","37\176\&33'60\"N 126\176\&58'41\"E"]
 
-####JSON parser 만들기
+#### JSON parser 만들기
 RFC 7159 의 JSON 규격에 맞는 JSON parser 를 만들어보겠습니다.
